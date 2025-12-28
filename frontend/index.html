@@ -9,6 +9,8 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <style>
         :root {
             --bg-color: #1e1e1e;
@@ -78,6 +80,7 @@
             100% { transform: scale(1) rotate(2deg); filter: drop-shadow(0 0 2px #ff9800); }
         }
         .loading-flame { font-size: 24px; animation: flame-flicker 0.6s infinite; display: inline-block; }
+        .hljs { background: transparent !important; padding: 0 !important; }
     </style>
 </head>
 <body>
@@ -86,20 +89,19 @@
         // Configure Marked for Code Copy
         const renderer = new marked.Renderer();
         renderer.code = (code, language) => {
-            const validLang = language || 'text';
-            const escapeHtml = (unsafe) => unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+            const validLang = (language && hljs.getLanguage(language)) ? language : 'plaintext';
+            let highlighted = code;
+            try {
+                const result = hljs.highlight(code, { language: validLang });
+                highlighted = result.value || code;
+            } catch (e) { /* fallback */ }
             
             return `<div class="code-wrapper">
                         <div class="code-header">
-                            <span>${validLang}</span>
+                            <span>${language || 'text'}</span>
                             <button class="copy-code-btn" onclick="window.copyToClipboard(this)">Copy</button>
                         </div>
-                        <pre><code class="hljs ${validLang}">${escapeHtml(code)}</code></pre>
+                        <pre><code class="hljs ${validLang}">${highlighted}</code></pre>
                     </div>`;
         };
         marked.setOptions({ renderer });
@@ -132,6 +134,12 @@
             
             useEffect(() => {
                 document.body.className = theme === 'light' ? 'light-mode' : '';
+                const hljsTheme = document.getElementById('hljs-theme');
+                if (hljsTheme) {
+                    hljsTheme.href = theme === 'light' 
+                        ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css"
+                        : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css";
+                }
             }, [theme]);
 
             useEffect(() => {
@@ -201,6 +209,27 @@
                 if (abortControllerRef.current) abortControllerRef.current.abort();
             };
 
+            const handleFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const formData = new FormData();
+                formData.append("file", file);
+                
+                setLoading(true);
+                setHistory(prev => [...prev, { role: "assistant", content: `📥 Uploading and indexing **${file.name}**...` }]);
+
+                try {
+                    const res = await fetch("/api/upload", { method: "POST", body: formData });
+                    const data = await res.json();
+                    setHistory(prev => [...prev, { role: "assistant", content: data.message }]);
+                } catch (err) {
+                    setHistory(prev => [...prev, { role: "assistant", content: "❌ Upload failed." }]);
+                }
+                setLoading(false);
+                e.target.value = null;
+            };
+
             const parseContent = (content) => {
                 const parts = content.split("\n\nPROACTIVE: > ");
                 const text = parts[0];
@@ -220,6 +249,13 @@
                             <span className={`status-badge ${status}`}>{status}</span>
                         </div>
                         <div style={{display:'flex', gap:'10px'}}>
+                            <input 
+                                type="file" 
+                                id="upload-input"
+                                style={{display:'none'}}
+                                onChange={handleFileUpload}
+                            />
+                            <button className="clear-btn" onClick={() => document.getElementById('upload-input').click()}>📂 Upload</button>
                             <button className="clear-btn" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀️' : '🌙'}</button>
                             <select 
                                 value={forgeMode} 

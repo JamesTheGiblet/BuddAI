@@ -15,10 +15,12 @@ from pathlib import Path
 import http.client
 import re # noqa: F401
 from typing import Optional
+import zipfile
+import shutil
 
 # Server dependencies
 try:
-    from fastapi import FastAPI
+    from fastapi import FastAPI, UploadFile, File
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel
@@ -205,18 +207,22 @@ class BuddAI:
         if "forge" in query.lower():
             specific_terms.append("Forge")
         keywords.extend(specific_terms)
-        # Search in function names and content
-        search_conditions = []
-        for keyword in keywords:
-            search_conditions.append(f"function_name LIKE '%{keyword}%'")
-            search_conditions.append(f"content LIKE '%{keyword}%'")
-        if not search_conditions:
+        
+        if not keywords:
             print("❌ No search terms found")
             conn.close()
             return "No search terms provided."
-        search_query = " OR ".join(search_conditions)
-        sql = f"SELECT repo_name, file_path, function_name, content FROM repo_index WHERE {search_query} LIMIT 10"
-        cursor.execute(sql)
+            
+        # Build parameterized query
+        conditions = []
+        params = []
+        for keyword in keywords:
+            conditions.append("(function_name LIKE ? OR content LIKE ? OR repo_name LIKE ?)")
+            params.extend([f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"])
+            
+        sql = f"SELECT repo_name, file_path, function_name, content FROM repo_index WHERE {' OR '.join(conditions)} ORDER BY last_modified DESC LIMIT 10"
+        
+        cursor.execute(sql, params)
         results = cursor.fetchall()
         conn.close()
         if not results:
@@ -237,7 +243,7 @@ class BuddAI:
             snippet = '\n'.join(snippet_lines)
             output += f"**{i}. {func}()** in {repo}\n"
             output += f"   📁 {Path(file_path).name}\n"
-            output += f"   ```cpp\n{snippet}\n   ```\n"
+            output += f"\n```cpp\n{snippet}\n```\n"
             output += f"   ---\n\n"
         return output
     
@@ -355,7 +361,7 @@ class BuddAI:
         count = 0
         
         for file_path in path.rglob('*'):
-            if file_path.is_file() and file_path.suffix in ['.py', '.ino', '.cpp', '.h']:
+            if file_path.is_file() and file_path.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
                 try:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
@@ -376,6 +382,15 @@ class BuddAI:
                     elif file_path.suffix in ['.ino', '.cpp', '.h']:
                         matches = re.findall(r'\b(?:void|int|bool|float|double|String|char)\s+(\w+)\s*\(', content)
                         functions.extend(matches)
+
+                    # JS/Web parsing
+                    elif file_path.suffix in ['.js', '.jsx']:
+                        matches = re.findall(r'(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?\(?.*?\)?\s*=>)', content)
+                        functions.extend([m[0] or m[1] for m in matches if m[0] or m[1]])
+
+                    # HTML/CSS - Index as whole file
+                    elif file_path.suffix in ['.html', '.css']:
+                        functions.append("file_content")
                     
                     # Determine repo name
                     try:
@@ -570,16 +585,19 @@ Identity Rules:
 Forge Theory Snippet: float applyForge(float current, float target, float k) { return target + (current - target) * exp(-k); }
 """
             
-            messages = [{"role": "system", "content": identity}]
+            messages = []
             
-            # Add recent context
-            # Check if 'message' is already the last item in context (Chat flow) or new (Build flow)
-            history = self.context_messages[-5:]
+            # Only add identity if not already in recent context
+            recent_system = [m for m in self.context_messages[-5:] if m.get('role') == 'system']
+            if not recent_system:
+                messages.append({"role": "system", "content": identity})
             
-            if history and history[-1]['content'] == message:
-                messages.extend(history)
-            else:
-                messages.extend(history)
+            # Add conversation history (excluding old system messages)
+            history = [m for m in self.context_messages[-5:] if m.get('role') != 'system']
+            messages.extend(history)
+            
+            # Add current message if it's not already the last item
+            if not history or history[-1].get('content') != message:
                 messages.append({"role": "user", "content": message})
             
             body = {
@@ -818,6 +836,37 @@ if SERVER_AVAILABLE:
     async def history_endpoint():
         return {"history": server_buddai.context_messages}
 
+    @app.post("/api/upload")
+    async def upload_repo(file: UploadFile = File(...)):
+        try:
+            uploads_dir = DATA_DIR / "uploads"
+            uploads_dir.mkdir(exist_ok=True)
+            
+            file_location = uploads_dir / file.filename
+            with open(file_location, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+                
+            if file.filename.endswith(".zip"):
+                extract_path = uploads_dir / file_location.stem
+                with zipfile.ZipFile(file_location, 'r') as zip_ref:
+                    zip_ref.extractall(extract_path)
+                server_buddai.index_local_repositories(extract_path)
+                file_location.unlink() # Cleanup zip
+                return {"message": f"✅ Successfully indexed {file.filename}"}
+            else:
+                # Support single code files by moving them to a folder and indexing
+                if file_location.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+                    target_dir = uploads_dir / file_location.stem
+                    target_dir.mkdir(exist_ok=True)
+                    final_path = target_dir / file.filename
+                    shutil.move(str(file_location), str(final_path))
+                    server_buddai.index_local_repositories(target_dir)
+                    return {"message": f"✅ Successfully indexed {file.filename}"}
+                
+                return {"message": f"✅ Successfully uploaded {file.filename}"}
+        except Exception as e:
+            return {"message": f"❌ Error: {str(e)}"}
+
 def check_ollama():
     try:
         conn = http.client.HTTPConnection(OLLAMA_HOST, OLLAMA_PORT, timeout=5)
@@ -839,7 +888,7 @@ def main():
             print("🚀 Starting BuddAI API Server on port 8000...")
             uvicorn.run(app, host="0.0.0.0", port=8000)
         else:
-            print("❌ Server dependencies missing. Install: pip install fastapi uvicorn aiofiles")
+            print("❌ Server dependencies missing. Install: pip install fastapi uvicorn aiofiles python-multipart")
     else:
         buddai = BuddAI()
         buddai.run()
