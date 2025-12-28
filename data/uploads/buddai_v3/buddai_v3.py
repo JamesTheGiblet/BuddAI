@@ -207,22 +207,18 @@ class BuddAI:
         if "forge" in query.lower():
             specific_terms.append("Forge")
         keywords.extend(specific_terms)
-        
-        if not keywords:
+        # Search in function names and content
+        search_conditions = []
+        for keyword in keywords:
+            search_conditions.append(f"function_name LIKE '%{keyword}%'")
+            search_conditions.append(f"content LIKE '%{keyword}%'")
+        if not search_conditions:
             print("❌ No search terms found")
             conn.close()
             return "No search terms provided."
-            
-        # Build parameterized query
-        conditions = []
-        params = []
-        for keyword in keywords:
-            conditions.append("(function_name LIKE ? OR content LIKE ? OR repo_name LIKE ?)")
-            params.extend([f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"])
-            
-        sql = f"SELECT repo_name, file_path, function_name, content FROM repo_index WHERE {' OR '.join(conditions)} ORDER BY last_modified DESC LIMIT 10"
-        
-        cursor.execute(sql, params)
+        search_query = " OR ".join(search_conditions)
+        sql = f"SELECT repo_name, file_path, function_name, content FROM repo_index WHERE {search_query} LIMIT 10"
+        cursor.execute(sql)
         results = cursor.fetchall()
         conn.close()
         if not results:
@@ -243,7 +239,7 @@ class BuddAI:
             snippet = '\n'.join(snippet_lines)
             output += f"**{i}. {func}()** in {repo}\n"
             output += f"   📁 {Path(file_path).name}\n"
-            output += f"\n```cpp\n{snippet}\n```\n"
+            output += f"   ```cpp\n{snippet}\n   ```\n"
             output += f"   ---\n\n"
         return output
     
@@ -361,7 +357,7 @@ class BuddAI:
         count = 0
         
         for file_path in path.rglob('*'):
-            if file_path.is_file() and file_path.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+            if file_path.is_file() and file_path.suffix in ['.py', '.ino', '.cpp', '.h']:
                 try:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
@@ -382,15 +378,6 @@ class BuddAI:
                     elif file_path.suffix in ['.ino', '.cpp', '.h']:
                         matches = re.findall(r'\b(?:void|int|bool|float|double|String|char)\s+(\w+)\s*\(', content)
                         functions.extend(matches)
-
-                    # JS/Web parsing
-                    elif file_path.suffix in ['.js', '.jsx']:
-                        matches = re.findall(r'(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?\(?.*?\)?\s*=>)', content)
-                        functions.extend([m[0] or m[1] for m in matches if m[0] or m[1]])
-
-                    # HTML/CSS - Index as whole file
-                    elif file_path.suffix in ['.html', '.css']:
-                        functions.append("file_content")
                     
                     # Determine repo name
                     try:
@@ -585,19 +572,16 @@ Identity Rules:
 Forge Theory Snippet: float applyForge(float current, float target, float k) { return target + (current - target) * exp(-k); }
 """
             
-            messages = []
+            messages = [{"role": "system", "content": identity}]
             
-            # Only add identity if not already in recent context
-            recent_system = [m for m in self.context_messages[-5:] if m.get('role') == 'system']
-            if not recent_system:
-                messages.append({"role": "system", "content": identity})
+            # Add recent context
+            # Check if 'message' is already the last item in context (Chat flow) or new (Build flow)
+            history = self.context_messages[-5:]
             
-            # Add conversation history (excluding old system messages)
-            history = [m for m in self.context_messages[-5:] if m.get('role') != 'system']
-            messages.extend(history)
-            
-            # Add current message if it's not already the last item
-            if not history or history[-1].get('content') != message:
+            if history and history[-1]['content'] == message:
+                messages.extend(history)
+            else:
+                messages.extend(history)
                 messages.append({"role": "user", "content": message})
             
             body = {
@@ -855,7 +839,7 @@ if SERVER_AVAILABLE:
                 return {"message": f"✅ Successfully indexed {file.filename}"}
             else:
                 # Support single code files by moving them to a folder and indexing
-                if file_location.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+                if file_location.suffix in ['.py', '.ino', '.cpp', '.h']:
                     target_dir = uploads_dir / file_location.stem
                     target_dir.mkdir(exist_ok=True)
                     final_path = target_dir / file.filename
