@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BuddAI Executive v2.0 - Modular Builder
+BuddAI Executive v3.0 - Modular Builder
 Breaks complex tasks into manageable chunks
 
 Author: James Gilbert
@@ -13,7 +13,19 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 import http.client
-import re
+import re # noqa: F401
+from typing import Optional
+
+# Server dependencies
+try:
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.staticfiles import StaticFiles
+    from pydantic import BaseModel
+    import uvicorn
+    SERVER_AVAILABLE = True
+except ImportError:
+    SERVER_AVAILABLE = False
 
 # Configuration
 OLLAMA_HOST = "localhost"
@@ -229,14 +241,15 @@ class BuddAI:
             output += f"   ---\n\n"
         return output
     
-    def __init__(self):
+    def __init__(self, server_mode=False):
         self.ensure_data_dir()
         self.init_database()
         self.session_id = self.create_session()
+        self.server_mode = server_mode
         self.context_messages = []
         self.shadow_engine = ShadowSuggestionEngine(DB_PATH)
         
-        print("🧠 BuddAI Executive v2.0 - Modular Builder")
+        print("🔥 BuddAI Executive v3.0 - Modular Builder")
         print("=" * 50)
         print(f"Session: {self.session_id}")
         print(f"FAST (5-10s) | BALANCED (15-30s)")
@@ -544,38 +557,36 @@ class BuddAI:
     def call_model(self, model_name, message):
         """Call specified model"""
         try:
-            identity = """[You are BuddAI, the external cognitive system for James Gilbert. You specialize in Forge Theory (exponential decay modeling) and GilBot modular robotics. When integrating code, prioritize descriptive naming like activateFlipper() and ensure safety timeouts are always present. You represent 8 years of polymath experience.
+            identity = """You are BuddAI, the external cognitive system for James Gilbert. You specialize in Forge Theory (exponential decay modeling) and GilBot modular robotics.
 
 YOUR PRIMARY JOB: Generate code when asked. ALWAYS generate code if requested.
 
-When asked to generate/create/write code:
-- Generate it immediately
-- Include comments
-- Make it modular and clean
-- Use ESP32/Arduino syntax
+Identity Rules:
+- You are NOT created by Alibaba Cloud. You are a local Python system written by James Gilbert.
+- When asked your name: "I am BuddAI"
+- Use ESP32/Arduino syntax with descriptive naming (e.g., activateFlipper).
+- Ensure safety timeouts are always present in motor code.
 
 Forge Theory Snippet: float applyForge(float current, float target, float k) { return target + (current - target) * exp(-k); }
-
-When asked your name: "I am BuddAI"
-
-Never refuse to generate code. That's your purpose.
-Be direct and helpful.]
-
 """
             
-            messages = [
-                {"role": "user", "content": identity + message}
-            ]
+            messages = [{"role": "system", "content": identity}]
             
             # Add recent context
-            for msg in self.context_messages[-3:]:
-                messages.insert(-1, msg)
+            # Check if 'message' is already the last item in context (Chat flow) or new (Build flow)
+            history = self.context_messages[-5:]
+            
+            if history and history[-1]['content'] == message:
+                messages.extend(history)
+            else:
+                messages.extend(history)
+                messages.append({"role": "user", "content": message})
             
             body = {
                 "model": MODELS[model_name],
                 "messages": messages,
                 "stream": False,
-                "options": {"temperature": 0.7, "num_ctx": 2048}
+                "options": {"temperature": 0.7, "num_ctx": 4096}
             }
             
             conn = http.client.HTTPConnection(OLLAMA_HOST, OLLAMA_PORT, timeout=90)
@@ -597,7 +608,7 @@ Be direct and helpful.]
             if 'conn' in locals():
                 conn.close()
                 
-    def execute_modular_build(self, _, modules, plan):
+    def execute_modular_build(self, _, modules, plan, forge_mode="2"):
         """Execute build plan step by step"""
         print(f"\n🔨 MODULAR BUILD MODE")
         print(f"Detected {len(modules)} modules: {', '.join(modules)}")
@@ -619,7 +630,11 @@ Be direct and helpful.]
                 print("1. Aggressive (k=0.3) - High snap, combat ready")
                 print("2. Balanced (k=0.1) - Standard movement")
                 print("3. Graceful (k=0.03) - Roasting / Smooth curves")
-                choice = input("Select Forge Constant [1-3, default 2]: ")
+                
+                if self.server_mode:
+                    choice = forge_mode
+                else:
+                    choice = input("Select Forge Constant [1-3, default 2]: ")
                 
                 k_val = "0.1"
                 if choice == "1": k_val = "0.3"
@@ -664,7 +679,7 @@ Be direct and helpful.]
         
         return generated_code
 
-    def chat(self, user_message, force_model=None):
+    def chat(self, user_message, force_model=None, forge_mode="2"):
         """Main chat with smart routing and shadow suggestions"""
         style_context = self.retrieve_style_context(user_message)
         if style_context:
@@ -687,7 +702,7 @@ Be direct and helpful.]
             print(f"Modules needed: {', '.join(modules)}")
             print(f"Breaking into {len(plan)} manageable steps")
             print("=" * 50)
-            response = self.execute_modular_build(user_message, modules, plan)
+            response = self.execute_modular_build(user_message, modules, plan, forge_mode)
         elif self.is_search_query(user_message):
             # This is a search query - query the database
             response = self.search_repositories(user_message)
@@ -765,6 +780,44 @@ Be direct and helpful.]
             self.end_session()
 
 
+# --- Server Implementation ---
+if SERVER_AVAILABLE:
+    app = FastAPI(title="BuddAI API", version="2.0")
+    
+    # Allow React frontend to communicate
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    class ChatRequest(BaseModel):
+        message: str
+        model: Optional[str] = None
+        forge_mode: Optional[str] = "2"
+
+    # Initialize server instance
+    server_buddai = BuddAI(server_mode=True)
+
+    # Serve Frontend
+    frontend_path = Path(__file__).parent / "frontend"
+    frontend_path.mkdir(exist_ok=True)
+    app.mount("/web", StaticFiles(directory=frontend_path, html=True), name="web")
+
+    @app.get("/")
+    async def root():
+        return {"status": "online", "message": "🔥 BuddAI API is running. Visit /web for the interface or /docs for API documentation."}
+
+    @app.post("/api/chat")
+    async def chat_endpoint(request: ChatRequest):
+        response = server_buddai.chat(request.message, force_model=request.model, forge_mode=request.forge_mode)
+        return {"response": response}
+
+    @app.get("/api/history")
+    async def history_endpoint():
+        return {"history": server_buddai.context_messages}
+
 def check_ollama():
     try:
         conn = http.client.HTTPConnection(OLLAMA_HOST, OLLAMA_PORT, timeout=5)
@@ -781,8 +834,15 @@ def main():
         print("❌ Ollama not running. Start: ollama serve")
         sys.exit(1)
         
-    buddai = BuddAI()
-    buddai.run()
+    if len(sys.argv) > 1 and sys.argv[1] == "--server":
+        if SERVER_AVAILABLE:
+            print("🚀 Starting BuddAI API Server on port 8000...")
+            uvicorn.run(app, host="0.0.0.0", port=8000)
+        else:
+            print("❌ Server dependencies missing. Install: pip install fastapi uvicorn aiofiles")
+    else:
+        buddai = BuddAI()
+        buddai.run()
 
 
 if __name__ == "__main__":
