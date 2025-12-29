@@ -965,6 +965,18 @@ if SERVER_AVAILABLE:
     async def favicon():
         return FileResponse(Path(__file__).parent / "icons" / "icon.png")
 
+    @app.get("/favicon-16x16.png", include_in_schema=False)
+    async def favicon_16():
+        return FileResponse(Path(__file__).parent / "icons" / "favicon-16x16.png")
+
+    @app.get("/favicon-32x32.png", include_in_schema=False)
+    async def favicon_32():
+        return FileResponse(Path(__file__).parent / "icons" / "favicon-32x32.png")
+
+    @app.get("/favicon-192x192.png", include_in_schema=False)
+    async def favicon_192():
+        return FileResponse(Path(__file__).parent / "icons" / "favicon-192x192.png")
+
     @app.post("/api/chat")
     async def chat_endpoint(request: ChatRequest):
         response = server_buddai.chat(request.message, force_model=request.model, forge_mode=request.forge_mode)
