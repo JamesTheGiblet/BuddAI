@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: PRODUCTION](https://img.shields.io/badge/Status-PRODUCTION-green.svg)](https://github.com/JamesTheGiblet/BuddAI)
 [![Version: v3.1](https://img.shields.io/badge/Version-v3.1-blue.svg)](https://github.com/JamesTheGiblet/BuddAI/releases)
-[![Tests: 11/11](https://img.shields.io/badge/Tests-11%2F11%20Passing-brightgreen.svg)](https://github.com/JamesTheGiblet/BuddAI/actions)
+[![Tests: 24/24](https://img.shields.io/badge/Tests-24%2F24%20Passing-brightgreen.svg)](https://github.com/JamesTheGiblet/BuddAI/actions)
 
 ---
 
@@ -976,7 +976,11 @@ void updateLEDPattern() {
 ### Run the Test Suite
 
 ```bash
+# Unit Tests
 python tests/test_buddai.py
+
+# Integration Tests
+python tests/test_integration.py
 ```
 
 ### Test Coverage (11/11 Passing)

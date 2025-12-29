@@ -205,6 +205,7 @@
             const [showSidebar, setShowSidebar] = useState(true);
             const [editingSession, setEditingSession] = useState(null);
             const [renameText, setRenameText] = useState("");
+            const [feedbackGiven, setFeedbackGiven] = useState({});
             const [input, setInput] = useState("");
             const [loading, setLoading] = useState(false);
             const [status, setStatus] = useState("connecting");
@@ -307,6 +308,24 @@
                 fetchSessions();
             };
 
+            const handleFeedback = async (messageId, positive) => {
+                if (!messageId || feedbackGiven[messageId]) return;
+
+                setFeedbackGiven(prev => ({ ...prev, [messageId]: positive ? 'positive' : 'negative' }));
+
+                try {
+                    await fetch("/api/feedback", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message_id: messageId, positive: positive })
+                    });
+                } catch (e) {
+                    console.error("Feedback submission failed", e);
+                    // Revert UI on failure
+                    setFeedbackGiven(prev => { const n = {...prev}; delete n[messageId]; return n; });
+                }
+            };
+
             const loadSession = async (sessionId) => {
                 setLoading(true);
                 try {
@@ -363,6 +382,14 @@
                             });
                         } else if (data.type === 'end') {
                             setLoading(false);
+                            setHistory(prev => {
+                                const newHistory = [...prev];
+                                const lastMsg = newHistory[newHistory.length - 1];
+                                if (lastMsg && lastMsg.role === 'assistant') {
+                                    lastMsg.id = data.message_id;
+                                }
+                                return newHistory;
+                            });
                             if (!currentSessionId) fetchSessions();
                         }
                     };
@@ -375,7 +402,7 @@
                             body: JSON.stringify({ message: msgText, forge_mode: forgeMode })
                         });
                         const data = await res.json();
-                        setHistory(prev => [...prev, { role: "assistant", content: data.response }]);
+                        setHistory(prev => [...prev, { role: "assistant", content: data.response, id: data.message_id }]);
                         if (!currentSessionId) fetchSessions();
                     } catch (err) {
                         setHistory(prev => [...prev, { role: "assistant", content: "Error connecting to BuddAI server." }]);
@@ -501,6 +528,22 @@
                                             {suggestions.map((s, idx) => (
                                                 <div key={idx} className="suggestion-pill" onClick={() => sendMessage(s)}>{s}</div>
                                             ))}
+                                        </div>
+                                    )}
+                                    {msg.role === 'assistant' && msg.id && !loading && (
+                                        <div className="feedback-btns">
+                                            <button 
+                                                className={`feedback-btn ${feedbackGiven[msg.id] === 'positive' ? 'selected' : ''}`}
+                                                onClick={() => handleFeedback(msg.id, true)}
+                                                disabled={!!feedbackGiven[msg.id]}
+                                                title="Good response"
+                                            >👍</button>
+                                            <button 
+                                                className={`feedback-btn ${feedbackGiven[msg.id] === 'negative' ? 'selected' : ''}`}
+                                                onClick={() => handleFeedback(msg.id, false)}
+                                                disabled={!!feedbackGiven[msg.id]}
+                                                title="Bad response"
+                                            >👎</button>
                                         </div>
                                     )}
                                 </div>

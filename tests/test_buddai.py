@@ -922,6 +922,48 @@ def test_connection_pool():
         print_fail(f"Pool overflow handling failed. Size: {pool.pool.qsize()}")
         return False
 
+# Test 20: Feedback System
+def test_feedback_system():
+    print_test("Feedback System")
+    
+    # Use a named temporary file for DB
+    fd, test_db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    test_db = Path(test_db_path)
+    
+    try:
+        with patch('buddai_v3_2.DB_PATH', test_db):
+            # Suppress prints
+            with patch('builtins.print'):
+                buddai = BuddAI(server_mode=False)
+            
+            # 1. Create a message to rate
+            msg_id = buddai.save_message("assistant", "Test response")
+            
+            # 2. Record positive feedback
+            buddai.record_feedback(msg_id, True)
+            
+            # 3. Verify in DB
+            conn = sqlite3.connect(test_db)
+            cursor = conn.cursor()
+            cursor.execute("SELECT positive FROM feedback WHERE message_id = ?", (msg_id,))
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row and row[0] == 1: # Boolean true is 1 in sqlite
+                print_pass("Positive feedback recorded successfully")
+                return True
+            else:
+                print_fail(f"Feedback not recorded correctly. Got: {row}")
+                return False
+
+    finally:
+        try:
+            if test_db.exists():
+                os.unlink(test_db)
+        except Exception:
+            pass
+
 # Main Test Runner
 def run_all_tests():
     print("\n" + "="*60)
@@ -948,6 +990,7 @@ def run_all_tests():
         ("Upload Security", test_upload_security),
         ("WebSocket Logic", test_websocket_logic),
         ("Connection Pooling", test_connection_pool),
+        ("Feedback System", test_feedback_system),
     ]
     
     results = []
