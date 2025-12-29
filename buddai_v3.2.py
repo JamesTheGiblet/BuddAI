@@ -283,6 +283,7 @@ class BuddAI:
     
     def __init__(self, user_id: str = "default", server_mode: bool = False):
         self.user_id = user_id
+        self.last_generated_id = None
         self.ensure_data_dir()
         self.init_database()
         self.session_id = self.create_session()
@@ -368,6 +369,15 @@ class BuddAI:
         except sqlite3.OperationalError:
             pass
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_id INTEGER,
+                positive BOOLEAN,
+                timestamp TIMESTAMP
+            )
+        """)
+
         conn.commit()
         conn.close()
         
@@ -404,15 +414,17 @@ class BuddAI:
         conn.commit()
         conn.close()
         
-    def save_message(self, role: str, content: str) -> None:
+    def save_message(self, role: str, content: str) -> int:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
             (self.session_id, role, content, datetime.now().isoformat())
         )
+        msg_id = cursor.lastrowid
         conn.commit()
         conn.close()
+        return msg_id
         
     def index_local_repositories(self, root_path: str) -> None:
         """Crawl directories and index .py, .ino, and .cpp files"""
@@ -833,6 +845,25 @@ float applyForge(float current, float target, float k) {{ return target + (curre
         
         return generated_code
 
+    def record_feedback(self, message_id: int, feedback: bool) -> None:
+        """Learn from user feedback."""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO feedback (message_id, positive, timestamp)
+            VALUES (?, ?, ?)
+        """, (message_id, feedback, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        
+        # Adjust confidence scores
+        self.update_style_confidence(message_id, feedback)
+
+    def update_style_confidence(self, message_id: int, positive: bool) -> None:
+        """Adjust confidence of style preferences based on feedback."""
+        # Placeholder for V4.0 learning loop
+        pass
+
     def _route_request(self, user_message: str, force_model: Optional[str], forge_mode: str) -> str:
         """Route the request to the appropriate model or handler."""
         # Determine model based on complexity
@@ -865,8 +896,8 @@ float applyForge(float current, float target, float k) {{ return target + (curre
         if style_context:
             self.context_messages.append({"role": "system", "content": style_context})
 
-        self.save_message("user", user_message)
-        self.context_messages.append({"role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
+        user_msg_id = self.save_message("user", user_message)
+        self.context_messages.append({"id": user_msg_id, "role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
         full_response = ""
         
@@ -899,8 +930,9 @@ float applyForge(float current, float target, float k) {{ return target + (curre
             full_response += bar
             yield bar
             
-        self.save_message("assistant", full_response)
-        self.context_messages.append({"role": "assistant", "content": full_response, "timestamp": datetime.now().isoformat()})
+        msg_id = self.save_message("assistant", full_response)
+        self.last_generated_id = msg_id
+        self.context_messages.append({"id": msg_id, "role": "assistant", "content": full_response, "timestamp": datetime.now().isoformat()})
 
     # --- Main Chat Method ---
     def chat(self, user_message: str, force_model: Optional[str] = None, forge_mode: str = "2") -> str:
@@ -909,17 +941,17 @@ float applyForge(float current, float target, float k) {{ return target + (curre
         if style_context:
             self.context_messages.append({"role": "system", "content": style_context})
 
-
-        self.save_message("user", user_message)
-        self.context_messages.append({"role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
+        user_msg_id = self.save_message("user", user_message)
+        self.context_messages.append({"id": user_msg_id, "role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
         # Direct Schedule Check
         if "what should i be doing" in user_message.lower() or "my schedule" in user_message.lower() or "schedule check" in user_message.lower():
             status = self.get_user_status()
             response = f"📅 **Schedule Check**\nAccording to your protocol, you should be: **{status}**"
             print(f"⏰ Schedule check triggered: {status}")
-            self.save_message("assistant", response)
-            self.context_messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+            msg_id = self.save_message("assistant", response)
+            self.last_generated_id = msg_id
+            self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
             return response
 
         response = self._route_request(user_message, force_model, forge_mode)
@@ -933,8 +965,9 @@ float applyForge(float current, float target, float k) {{ return target + (curre
             bar = "\n\nPROACTIVE: > " + " ".join([f"{i+1}. {s}" for i, s in enumerate(suggestions)])
             response += bar
 
-        self.save_message("assistant", response)
-        self.context_messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+        msg_id = self.save_message("assistant", response)
+        self.last_generated_id = msg_id
+        self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
 
         return response
         
@@ -975,15 +1008,15 @@ float applyForge(float current, float target, float k) {{ return target + (curre
             conn.close()
             return []
             
-        cursor.execute("SELECT role, content, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
+        cursor.execute("SELECT id, role, content, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
         rows = cursor.fetchall()
         conn.close()
         
         self.session_id = session_id
         self.context_messages = []
         loaded_history = []
-        for role, content, ts in rows:
-            msg = {"role": role, "content": content, "timestamp": ts}
+        for msg_id, role, content, ts in rows:
+            msg = {"id": msg_id, "role": role, "content": content, "timestamp": ts}
             self.context_messages.append(msg)
             loaded_history.append(msg)
         return loaded_history
@@ -1049,7 +1082,6 @@ float applyForge(float current, float target, float k) {{ return target + (curre
 
 # --- Server Implementation ---
 if SERVER_AVAILABLE:
-    app = FastAPI(title="BuddAI API", version="3.1")
     app = FastAPI(title="BuddAI API", version="3.2")
     
     # Allow React frontend to communicate
@@ -1074,6 +1106,10 @@ if SERVER_AVAILABLE:
 
     class SessionDeleteRequest(BaseModel):
         session_id: str
+
+    class FeedbackRequest(BaseModel):
+        message_id: int
+        positive: bool
 
     # Multi-user support
     class BuddAIManager:
@@ -1174,7 +1210,7 @@ if SERVER_AVAILABLE:
     async def chat_endpoint(request: ChatRequest, user_id: str = Header("default")):
         server_buddai = buddai_manager.get_instance(user_id)
         response = server_buddai.chat(request.message, force_model=request.model, forge_mode=request.forge_mode)
-        return {"response": response}
+        return {"response": response, "message_id": server_buddai.last_generated_id}
 
     @app.websocket("/api/ws/chat")
     async def websocket_endpoint(websocket: WebSocket):
@@ -1192,9 +1228,15 @@ if SERVER_AVAILABLE:
                 for chunk in server_buddai.chat_stream(user_message, model, forge_mode):
                     await websocket.send_json({"type": "token", "content": chunk})
                     
-                await websocket.send_json({"type": "end"})
+                await websocket.send_json({"type": "end", "message_id": server_buddai.last_generated_id})
         except WebSocketDisconnect:
             pass
+
+    @app.post("/api/feedback")
+    async def feedback_endpoint(req: FeedbackRequest, user_id: str = Header("default")):
+        server_buddai = buddai_manager.get_instance(user_id)
+        server_buddai.record_feedback(req.message_id, req.positive)
+        return {"status": "success"}
 
     @app.get("/api/history")
     async def history_endpoint(user_id: str = Header("default")):
