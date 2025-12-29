@@ -7,7 +7,11 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
-    <meta name="theme-color" content="#1e1e1e">
+    <!-- 'theme-color' is not supported by Firefox, Firefox for Android, Opera. 
+         It is used by Chrome and some Android browsers for UI theming. -->
+    <!-- <meta name="theme-color" content="#1e1e1e"> -->
+    <!-- For Safari on iOS -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>BuddAI Web</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
