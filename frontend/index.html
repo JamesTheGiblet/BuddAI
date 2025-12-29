@@ -214,6 +214,7 @@
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
             const endRef = useRef(null);
             const abortControllerRef = useRef(null);
+            const socketRef = useRef(null);
 
             const scrollToBottom = () => {
                 endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -264,6 +265,17 @@
                     })
                     .catch(console.error);
                 return () => clearInterval(timer);
+            }, []);
+
+            useEffect(() => {
+                // Initialize WebSocket
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/api/ws/chat`;
+                socketRef.current = new WebSocket(wsUrl);
+                
+                return () => {
+                    if (socketRef.current) socketRef.current.close();
+                };
             }, []);
 
             const handleRename = async (e) => {
@@ -327,30 +339,49 @@
                 if (!textOverride) setInput("");
                 setLoading(true);
                 
-                // Cancel previous request if any
-                if (abortControllerRef.current) abortControllerRef.current.abort();
-                const controller = new AbortController();
-                abortControllerRef.current = controller;
+                // Use WebSocket if available
+                if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                    // Add placeholder for streaming response
+                    setHistory(prev => [...prev, { role: "assistant", content: "" }]);
+                    
+                    socketRef.current.send(JSON.stringify({
+                        message: msgText,
+                        forge_mode: forgeMode,
+                        user_id: "default" // In a real app, get from auth context
+                    }));
 
-                try {
-                    const res = await fetch("/api/chat", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ message: msgText, forge_mode: forgeMode }),
-                        signal: controller.signal
-                    });
-                    const data = await res.json();
-                    setHistory(prev => [...prev, { role: "assistant", content: data.response }]);
-                    if (!currentSessionId) fetchSessions(); // Refresh list if this was first msg
-                } catch (err) {
-                    if (err.name === 'AbortError') {
-                        setHistory(prev => [...prev, { role: "assistant", content: "🛑 *Generation stopped by user.*" }]);
-                    } else {
+                    socketRef.current.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'token') {
+                            setHistory(prev => {
+                                const newHistory = [...prev];
+                                const lastMsg = newHistory[newHistory.length - 1];
+                                if (lastMsg.role === 'assistant') {
+                                    lastMsg.content += data.content;
+                                }
+                                return newHistory;
+                            });
+                        } else if (data.type === 'end') {
+                            setLoading(false);
+                            if (!currentSessionId) fetchSessions();
+                        }
+                    };
+                } else {
+                    // Fallback to HTTP
+                    try {
+                        const res = await fetch("/api/chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ message: msgText, forge_mode: forgeMode })
+                        });
+                        const data = await res.json();
+                        setHistory(prev => [...prev, { role: "assistant", content: data.response }]);
+                        if (!currentSessionId) fetchSessions();
+                    } catch (err) {
                         setHistory(prev => [...prev, { role: "assistant", content: "Error connecting to BuddAI server." }]);
                     }
+                    setLoading(false);
                 }
-                setLoading(false);
-                abortControllerRef.current = null;
             };
 
             const stopGeneration = () => {
@@ -394,7 +425,7 @@
                     <div className="header">
                         <div style={{display:'flex', alignItems:'center'}}>
                             <img src="/favicon.ico" alt="BuddAI" style={{height: '24px', marginRight: '10px'}} />
-                            <h3 style={{margin:0}}>BuddAI v3</h3>
+                            <h3 style={{margin:0}}>BuddAI v3.2</h3>
                             <span className={`status-badge ${status}`}>{status}</span>
                         </div>
                         <div style={{display:'flex', gap:'10px'}}>
