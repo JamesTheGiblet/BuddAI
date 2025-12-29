@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
-    <title>🔥 BuddAI Web</title>
+    <link rel="icon" href="/favicon.ico">
+    <title>BuddAI Web</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -42,10 +42,26 @@
             --code-border: #d1d5da;
             --code-text: #24292e;
         }
+        .sidebar-left { width: 260px; background: var(--header-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .session-list { flex: 1; overflow-y: auto; }
+        .session-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 0.85em; color: var(--text-color); transition: background 0.2s; }
+        .session-item:hover { background: var(--bg-color); }
+        .session-item.active { background: var(--btn-bg); color: white; border-color: var(--btn-bg); }
+        .new-chat-btn { margin: 15px; padding: 10px; background: var(--btn-bg); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .new-chat-btn:hover { background: var(--btn-hover); }
+        .session-date { font-weight: bold; display: block; margin-bottom: 4px; }
+        .session-id { font-size: 0.8em; opacity: 0.6; font-family: monospace; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; display: flex; justify-content: center; height: 100vh; transition: background 0.3s, color 0.3s; }
-        #root { width: 100%; max-width: 900px; display: flex; flex-direction: column; height: 100%; }
+        #root { width: 100%; max-width: 100%; display: flex; flex-direction: column; height: 100%; }
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        .chat-section { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .side-panel { width: 45%; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; background: var(--bg-color); }
+        .side-header { padding: 10px 15px; background: var(--header-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
+        .side-content { flex: 1; overflow: auto; background: var(--code-bg); position: relative; }
+        .side-content pre { margin: 0; padding: 15px; min-height: 100%; box-sizing: border-box; }
         .message { padding: 15px; border-radius: 8px; max-width: 85%; line-height: 1.5; }
+        .timestamp { font-size: 0.75em; opacity: 0.7; margin-bottom: 4px; display: block; font-family: monospace; }
         .user { align-self: flex-end; background: var(--user-msg-bg); color: var(--user-msg-text); }
         .assistant { align-self: flex-start; background: var(--assistant-msg-bg); border: 1px solid var(--border-color); }
         .input-area { padding: 20px; background: var(--header-bg); border-top: 1px solid var(--border-color); display: flex; gap: 10px; }
@@ -89,6 +105,12 @@
         // Configure Marked for Code Copy
         const renderer = new marked.Renderer();
         renderer.code = (code, language) => {
+            // Handle Marked v12+ signature where first arg is a token object
+            if (typeof code === 'object' && code !== null && code.text) {
+                language = code.lang;
+                code = code.text;
+            }
+
             const validLang = (language && hljs.getLanguage(language)) ? language : 'plaintext';
             let highlighted = code;
             try {
@@ -99,7 +121,10 @@
             return `<div class="code-wrapper">
                         <div class="code-header">
                             <span>${language || 'text'}</span>
-                            <button class="copy-code-btn" onclick="window.copyToClipboard(this)">Copy</button>
+                            <div style="display:flex; gap:5px;">
+                                <button class="copy-code-btn" onclick="window.copyToClipboard(this)">Copy</button>
+                                <button class="copy-code-btn" onclick="window.sendToSidebar(this)">Sidebar</button>
+                            </div>
                         </div>
                         <pre><code class="hljs ${validLang}">${highlighted}</code></pre>
                     </div>`;
@@ -115,16 +140,60 @@
                 setTimeout(() => btn.innerText = original, 2000);
             });
         };
+        
+        window.sendToSidebar = (btn) => {
+            const wrapper = btn.closest('.code-wrapper');
+            const code = wrapper.querySelector('code').innerText;
+            if (window.updateSidebar) window.updateSidebar(code);
+        };
+
+        window.downloadCode = (content) => {
+            if (!content) return;
+            if (typeof content !== 'string') return;
+            let ext = 'txt';
+            
+            // Heuristic for Arduino
+            if (content.includes('void setup()') && content.includes('void loop()')) {
+                ext = 'ino';
+            } else {
+                try {
+                    const result = hljs.highlightAuto(content);
+                    if (result.language) {
+                        const map = { 
+                            python: 'py', javascript: 'js', cpp: 'cpp', c: 'c',
+                            arduino: 'ino', html: 'html', css: 'css', 
+                            csharp: 'cs', java: 'java', bash: 'sh', json: 'json',
+                            markdown: 'md', sql: 'sql'
+                        };
+                        ext = map[result.language] || result.language;
+                    }
+                } catch (e) {}
+            }
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `buddai_generated.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
 
         const { useState, useEffect, useRef } = React;
 
         function App() {
             const [history, setHistory] = useState([]);
+            const [sessions, setSessions] = useState([]);
+            const [currentSessionId, setCurrentSessionId] = useState(null);
             const [input, setInput] = useState("");
             const [loading, setLoading] = useState(false);
             const [status, setStatus] = useState("connecting");
             const [forgeMode, setForgeMode] = useState("2");
             const [theme, setTheme] = useState("dark");
+            const [sidebarContent, setSidebarContent] = useState("");
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
             const endRef = useRef(null);
             const abortControllerRef = useRef(null);
 
@@ -133,6 +202,11 @@
             };
             
             useEffect(() => {
+                window.updateSidebar = (code) => {
+                    setSidebarContent(code);
+                    setIsSidebarOpen(true);
+                };
+                
                 document.body.className = theme === 'light' ? 'light-mode' : '';
                 const hljsTheme = document.getElementById('hljs-theme');
                 if (hljsTheme) {
@@ -145,6 +219,8 @@
             useEffect(() => {
                 scrollToBottom();
             }, [history]);
+
+            const fetchSessions = () => fetch("/api/sessions").then(res => res.json()).then(data => setSessions(data.sessions || [])).catch(console.error);
 
             useEffect(() => {
                 // Check System Status
@@ -159,6 +235,7 @@
                 checkStatus();
                 const timer = setInterval(checkStatus, 10000);
 
+                fetchSessions();
                 // Load History
                 fetch("/api/history")
                     .then(res => res.json())
@@ -171,11 +248,34 @@
                 return () => clearInterval(timer);
             }, []);
 
+            const loadSession = async (sessionId) => {
+                setLoading(true);
+                try {
+                    const res = await fetch("/api/session/load", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+                    const data = await res.json();
+                    setHistory(data.history || []);
+                    setCurrentSessionId(data.session_id);
+                } catch (e) { console.error(e); }
+                setLoading(false);
+            };
+
+            const startNewSession = async () => {
+                const res = await fetch("/api/session/new", { method: "POST" });
+                const data = await res.json();
+                setCurrentSessionId(data.session_id);
+                setHistory([]);
+                fetchSessions();
+            };
+
             const sendMessage = async (textOverride = null) => {
                 const msgText = typeof textOverride === 'string' ? textOverride : input;
                 if (!msgText.trim()) return;
                 
-                const userMsg = { role: "user", content: msgText };
+                const userMsg = { role: "user", content: msgText, timestamp: new Date().toISOString() };
                 setHistory(prev => [...prev, userMsg]);
                 if (!textOverride) setInput("");
                 setLoading(true);
@@ -194,6 +294,7 @@
                     });
                     const data = await res.json();
                     setHistory(prev => [...prev, { role: "assistant", content: data.response }]);
+                    if (!currentSessionId) fetchSessions(); // Refresh list if this was first msg
                 } catch (err) {
                     if (err.name === 'AbortError') {
                         setHistory(prev => [...prev, { role: "assistant", content: "🛑 *Generation stopped by user.*" }]);
@@ -245,7 +346,8 @@
                 <>
                     <div className="header">
                         <div style={{display:'flex', alignItems:'center'}}>
-                            <h3 style={{margin:0}}>🔥 BuddAI v3.0</h3>
+                            <img src="/favicon.ico" alt="BuddAI" style={{height: '24px', marginRight: '10px'}} />
+                            <h3 style={{margin:0}}>BuddAI v3</h3>
                             <span className={`status-badge ${status}`}>{status}</span>
                         </div>
                         <div style={{display:'flex', gap:'10px'}}>
@@ -256,6 +358,7 @@
                                 onChange={handleFileUpload}
                             />
                             <button className="clear-btn" onClick={() => document.getElementById('upload-input').click()}>📂 Upload</button>
+                            <button className="clear-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>{isSidebarOpen ? 'Hide Code' : 'Show Code'}</button>
                             <button className="clear-btn" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀️' : '🌙'}</button>
                             <select 
                                 value={forgeMode} 
@@ -268,12 +371,27 @@
                             <button className="clear-btn" onClick={() => setHistory([])}>Clear</button>
                         </div>
                     </div>
+                    <div className="main-layout">
+                    <div className="sidebar-left">
+                        <button className="new-chat-btn" onClick={startNewSession}>+ New Chat</button>
+                        <div className="session-list">
+                            {sessions.map(s => (
+                                <div key={s.id} className={`session-item ${s.id === currentSessionId ? 'active' : ''}`} onClick={() => loadSession(s.id)}>
+                                    <span className="session-date">{new Date(s.date).toLocaleDateString()} {new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                    <span className="session-id">{s.id}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="chat-section">
                     <div className="chat-container">
                         {history.length === 0 && <div style={{textAlign: 'center', marginTop: '50px', color: '#666'}}><p>Ready to build.</p></div>}
                         {history.map((msg, i) => {
                             const { text, suggestions } = msg.role === 'assistant' ? parseContent(msg.content) : { text: msg.content, suggestions: [] };
+                            const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
                             return (
                                 <div key={i} className={`message ${msg.role}`}>
+                                    {timeStr && <span className="timestamp">{timeStr}</span>}
                                     <div dangerouslySetInnerHTML={{ __html: marked.parse(text) }} />
                                     {suggestions.length > 0 && (
                                         <div className="suggestions">
@@ -301,6 +419,23 @@
                         ) : (
                             <button onClick={() => sendMessage()}>Send</button>
                         )}
+                    </div>
+                    </div>
+                    {isSidebarOpen && (
+                        <div className="side-panel">
+                            <div className="side-header">
+                                <span>Code Workspace</span>
+                                <div style={{display: 'flex', gap: '5px'}}>
+                                    <button className="copy-code-btn" onClick={() => setSidebarContent("")}>Clear</button>
+                                    <button className="copy-code-btn" onClick={() => navigator.clipboard.writeText(sidebarContent)}>Copy</button>
+                                    <button className="copy-code-btn" onClick={() => window.downloadCode(sidebarContent)}>Download</button>
+                                </div>
+                            </div>
+                            <div className="side-content">
+                                <pre><code className="hljs" dangerouslySetInnerHTML={{__html: sidebarContent ? hljs.highlightAuto(sidebarContent).value : '// Select code from chat to view here'}} /></pre>
+                            </div>
+                        </div>
+                    )}
                     </div>
                 </>
             );

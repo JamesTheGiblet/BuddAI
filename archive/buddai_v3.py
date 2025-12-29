@@ -361,7 +361,7 @@ class BuddAI:
         count = 0
         
         for file_path in path.rglob('*'):
-            if file_path.is_file() and file_path.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+            if file_path.is_file() and file_path.suffix in ['.py', '.ino', '.cpp', '.h']:
                 try:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
@@ -382,15 +382,6 @@ class BuddAI:
                     elif file_path.suffix in ['.ino', '.cpp', '.h']:
                         matches = re.findall(r'\b(?:void|int|bool|float|double|String|char)\s+(\w+)\s*\(', content)
                         functions.extend(matches)
-
-                    # JS/Web parsing
-                    elif file_path.suffix in ['.js', '.jsx']:
-                        matches = re.findall(r'(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?\(?.*?\)?\s*=>)', content)
-                        functions.extend([m[0] or m[1] for m in matches if m[0] or m[1]])
-
-                    # HTML/CSS - Index as whole file
-                    elif file_path.suffix in ['.html', '.css']:
-                        functions.append("file_content")
                     
                     # Determine repo name
                     try:
@@ -572,7 +563,8 @@ class BuddAI:
     def call_model(self, model_name, message):
         """Call specified model"""
         try:
-            identity = """You are BuddAI, the external cognitive system for James Gilbert. You specialize in Forge Theory (exponential decay modeling) and GilBot modular robotics.
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            identity = f"""You are BuddAI, the external cognitive system for James Gilbert. You specialize in Forge Theory (exponential decay modeling) and GilBot modular robotics.
 
 YOUR PRIMARY JOB: Generate code when asked. ALWAYS generate code if requested.
 
@@ -581,6 +573,7 @@ Identity Rules:
 - When asked your name: "I am BuddAI"
 - Use ESP32/Arduino syntax with descriptive naming (e.g., activateFlipper).
 - Ensure safety timeouts are always present in motor code.
+- Current System Time: {current_time}
 
 Forge Theory Snippet: float applyForge(float current, float target, float k) { return target + (current - target) * exp(-k); }
 """
@@ -594,7 +587,18 @@ Forge Theory Snippet: float applyForge(float current, float target, float k) { r
             
             # Add conversation history (excluding old system messages)
             history = [m for m in self.context_messages[-5:] if m.get('role') != 'system']
-            messages.extend(history)
+            
+            # Inject timestamps into history for context
+            for msg in history:
+                content = msg.get('content', '')
+                ts = msg.get('timestamp')
+                if ts:
+                    try:
+                        dt = datetime.fromisoformat(ts)
+                        content = f"[{dt.strftime('%H:%M')}] {content}"
+                    except ValueError:
+                        pass
+                messages.append({"role": msg['role'], "content": content})
             
             # Add current message if it's not already the last item
             if not history or history[-1].get('content') != message:
@@ -705,7 +709,7 @@ Forge Theory Snippet: float applyForge(float current, float target, float k) { r
 
 
         self.save_message("user", user_message)
-        self.context_messages.append({"role": "user", "content": user_message})
+        self.context_messages.append({"role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
 
         if force_model:
@@ -741,7 +745,7 @@ Forge Theory Snippet: float applyForge(float current, float target, float k) { r
             response += bar
 
         self.save_message("assistant", response)
-        self.context_messages.append({"role": "assistant", "content": response})
+        self.context_messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
 
         return response
         
@@ -855,7 +859,7 @@ if SERVER_AVAILABLE:
                 return {"message": f"✅ Successfully indexed {file.filename}"}
             else:
                 # Support single code files by moving them to a folder and indexing
-                if file_location.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+                if file_location.suffix in ['.py', '.ino', '.cpp', '.h']:
                     target_dir = uploads_dir / file_location.stem
                     target_dir.mkdir(exist_ok=True)
                     final_path = target_dir / file.filename
