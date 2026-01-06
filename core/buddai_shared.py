@@ -5,7 +5,7 @@ import queue
 import http.client
 
 # Global Config
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).parent.parent / "data"
 DB_PATH = DATA_DIR / "conversations.db"
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "127.0.0.1")
 OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))

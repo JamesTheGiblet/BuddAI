@@ -18,18 +18,25 @@ import json
 
 # Dynamic import of buddai_v3.2.py
 REPO_ROOT = Path(__file__).parent.parent
-MODULE_PATH = REPO_ROOT / "buddai_v3.2.py"
-spec = importlib.util.spec_from_file_location("buddai_v3_2", MODULE_PATH)
+MODULE_PATH = REPO_ROOT / "buddai_executive.py"
+spec = importlib.util.spec_from_file_location("buddai_executive", MODULE_PATH)
 buddai_module = importlib.util.module_from_spec(spec)
-sys.modules["buddai_v3_2"] = buddai_module
+sys.modules["buddai_executive"] = buddai_module
 spec.loader.exec_module(buddai_module)
 
 # Check for server dependencies
 SERVER_AVAILABLE = getattr(buddai_module, "SERVER_AVAILABLE", False)
 
 if SERVER_AVAILABLE:
+    # Load buddai_server.py dynamically to get 'app'
+    SERVER_PATH = REPO_ROOT / "buddai_server.py"
+    spec_server = importlib.util.spec_from_file_location("buddai_server", SERVER_PATH)
+    server_module = importlib.util.module_from_spec(spec_server)
+    sys.modules["buddai_server"] = server_module
+    spec_server.loader.exec_module(server_module)
+    
     from fastapi.testclient import TestClient
-    app = buddai_module.app
+    app = server_module.app
     client = TestClient(app)
 else:
     print("⚠️  Server dependencies missing. Integration tests skipped.")
@@ -43,7 +50,7 @@ class TestBuddAIIntegration(unittest.TestCase):
         os.close(self.db_fd)
         
         # Patch DB_PATH in the module
-        self.db_patcher = patch("buddai_v3_2.DB_PATH", Path(self.db_path))
+        self.db_patcher = patch("buddai_executive.DB_PATH", Path(self.db_path))
         self.mock_db_path = self.db_patcher.start()
         
         # Reset the manager to ensure fresh BuddAI instances connected to temp DB
@@ -143,9 +150,9 @@ class TestBuddAIIntegration(unittest.TestCase):
     def test_upload_api(self):
         """Test file upload endpoint"""
         with tempfile.TemporaryDirectory() as tmp_data_dir:
-            with patch("buddai_v3_2.DATA_DIR", Path(tmp_data_dir)):
+            with patch("buddai_executive.DATA_DIR", Path(tmp_data_dir)):
                 # Mock indexing to avoid parsing logic
-                with patch.object(buddai_module.BuddAI, 'index_local_repositories') as mock_index:
+                with patch.object(buddai_module.RepoManager, 'index_local_repositories') as mock_index:
                     
                     # Create dummy file
                     files = {'file': ('test.py', b'print("hello")', 'text/x-python')}

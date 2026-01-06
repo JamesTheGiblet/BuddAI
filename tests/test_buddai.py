@@ -22,10 +22,10 @@ import http.client
 
 # Dynamic import of buddai_v3.2.py
 REPO_ROOT = Path(__file__).parent.parent
-MODULE_PATH = REPO_ROOT / "buddai_v3.2.py"
-spec = importlib.util.spec_from_file_location("buddai_v3_2", MODULE_PATH)
+MODULE_PATH = REPO_ROOT / "buddai_executive.py"
+spec = importlib.util.spec_from_file_location("buddai_executive", MODULE_PATH)
 buddai_module = importlib.util.module_from_spec(spec)
-sys.modules["buddai_v3_2"] = buddai_module
+sys.modules["buddai_executive"] = buddai_module
 spec.loader.exec_module(buddai_module)
 BuddAI = buddai_module.BuddAI
 
@@ -564,12 +564,12 @@ def test_schedule_awareness():
     print_test("Schedule Awareness")
     
     # Mock datetime to test different times
-    with patch('buddai_v3_2.datetime') as mock_date:
+    with patch('core.buddai_personality.datetime') as mock_date:
         # 1. Early Morning (Monday 6:00 AM)
         mock_date.now.return_value = datetime(2025, 12, 29, 6, 0, 0)
         
         buddai = BuddAI(server_mode=False)
-        status = buddai.get_user_status()
+        status = buddai.personality_manager.get_user_status()
         
         if "Early Morning" in status:
             print_pass(f"6:00 AM Mon -> {status}")
@@ -579,7 +579,7 @@ def test_schedule_awareness():
             
         # 2. Work Hours (Monday 10:00 AM)
         mock_date.now.return_value = datetime(2025, 12, 29, 10, 0, 0)
-        status = buddai.get_user_status()
+        status = buddai.personality_manager.get_user_status()
         
         if "Work Hours" in status:
             print_pass(f"10:00 AM Mon -> {status}")
@@ -619,7 +619,7 @@ def test_session_management():
     test_db = Path(test_db_path)
     
     try:
-        with patch('buddai_v3_2.DB_PATH', test_db):
+        with patch('buddai_executive.DB_PATH', test_db):
             buddai = BuddAI(server_mode=False)
             
             # 1. Create
@@ -665,8 +665,8 @@ def test_rapid_session_creation():
         # Mock datetime to return a fixed time, forcing ID collisions
         fixed_time = datetime(2025, 1, 1, 12, 0, 0)
         
-        with patch('buddai_v3_2.DB_PATH', test_db):
-            with patch('buddai_v3_2.datetime') as mock_dt:
+        with patch('buddai_executive.DB_PATH', test_db):
+            with patch('buddai_executive.datetime') as mock_dt:
                 mock_dt.now.return_value = fixed_time
                 
                 buddai = BuddAI(server_mode=False)
@@ -711,7 +711,7 @@ def test_repo_isolation():
         (repo_path / "user1_secret.py").write_text("def user1_secret_function():\n    pass")
         
         try:
-            with patch('buddai_v3_2.DB_PATH', test_db):
+            with patch('buddai_executive.DB_PATH', test_db):
                 # Suppress internal prints to keep test output clean
                 with patch('builtins.print'):
                     # User 1 indexes the repo
@@ -815,7 +815,7 @@ def test_websocket_logic():
     test_db = Path(test_db_path)
     
     try:
-        with patch('buddai_v3_2.DB_PATH', test_db):
+        with patch('buddai_executive.DB_PATH', test_db):
             # Suppress prints during init
             with patch('builtins.print'):
                 buddai = BuddAI(server_mode=False)
@@ -932,7 +932,7 @@ def test_feedback_system():
     test_db = Path(test_db_path)
     
     try:
-        with patch('buddai_v3_2.DB_PATH', test_db):
+        with patch('buddai_executive.DB_PATH', test_db):
             # Suppress prints
             with patch('builtins.print'):
                 buddai = BuddAI(server_mode=False)

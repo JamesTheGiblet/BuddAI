@@ -11,7 +11,7 @@ import socket
 import uvicorn
 
 # --- Import The Organs ---
-from buddai_shared import OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
+from core.buddai_shared import OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
 from buddai_executive import BuddAI
 
 # If server dependencies are present, import the app

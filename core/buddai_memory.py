@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Tuple, Union, Generator
 
-from buddai_shared import DB_PATH, MODULE_PATTERNS
+from core.buddai_shared import DB_PATH, MODULE_PATTERNS
 
 class ShadowSuggestionEngine:
     """Proactively suggests modules/settings based on user/project history."""

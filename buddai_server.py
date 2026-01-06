@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Tuple, Union, Generator
 from fastapi import FastAPI
 import uvicorn
 
-from buddai_shared import SERVER_AVAILABLE, DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT
+from core.buddai_shared import SERVER_AVAILABLE, DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT
 from buddai_executive import BuddAI
 
 # (Removed duplicate definitions of check_ollama, is_port_available, and main to resolve indentation and duplication errors)
@@ -166,7 +166,7 @@ app.mount("/web", StaticFiles(directory=frontend_path, html=True), name="web")
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     server_buddai = buddai_manager.get_instance("default")
-    status = server_buddai.get_user_status()
+    status = server_buddai.personality_manager.get_user_status()
     
     public_url = getattr(request.app.state, "public_url", "")
     qr_section = ""
@@ -562,7 +562,7 @@ async def upload_repo(file: UploadFile = File(...), user_id: str = Header("defau
             extract_path = uploads_dir / file_location.stem
             extract_path.mkdir(exist_ok=True)
             safe_extract_zip(file_location, extract_path)
-            server_buddai.index_local_repositories(extract_path)
+            server_buddai.repo_manager.index_local_repositories(extract_path)
             file_location.unlink() # Cleanup zip
             return {"message": f"✅ Successfully indexed {safe_name}"}
         else:
@@ -572,7 +572,7 @@ async def upload_repo(file: UploadFile = File(...), user_id: str = Header("defau
                 target_dir.mkdir(exist_ok=True)
                 final_path = target_dir / safe_name
                 shutil.move(str(file_location), str(final_path))
-                server_buddai.index_local_repositories(target_dir)
+                server_buddai.repo_manager.index_local_repositories(target_dir)
                 return {"message": f"✅ Successfully indexed {safe_name}"}
             
             return {"message": f"✅ Successfully uploaded {safe_name}"}
