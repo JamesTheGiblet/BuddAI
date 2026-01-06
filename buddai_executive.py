@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import sys, os, json, logging, sqlite3, datetime, http.client, re, zipfile, shutil, queue, socket, argparse, io
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple, Union, Generator
+from typing import Optional, List, Dict, Tuple, Union, Generator, Any
 
 from anthropic import BaseModel
 import psutil
@@ -124,6 +124,7 @@ class BuddAI:
         self.session_id = self.create_session()
         self.server_mode = server_mode
         self.context_messages = []
+        self.personality = self.load_personality()
         self.shadow_engine = ShadowSuggestionEngine(DB_PATH, self.user_id)
         self.learner = SmartLearner()
         self.hardware_profile = HardwareProfile()
@@ -133,14 +134,124 @@ class BuddAI:
         self.metrics = LearningMetrics()
         self.fine_tuner = ModelFineTuner()
         
-        print("BuddAI Executive v4.0 - Decoupled & Personality Sync")
+        self.display_welcome_message()
+        
+        self.__init_personality__()
+    
+        # Show status if personality loaded
+        if self.personality_loaded:
+            print(f"\n{self.get_user_status()}\n")
+        
+    def display_welcome_message(self):
+        """Display the startup banner and status."""
+        # Format welcome message with rule count
+        welcome_tmpl = self.get_personality_value("communication.welcome_message", "BuddAI Executive v4.0 - Decoupled & Personality Sync")
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM code_rules")
+            count = cursor.fetchone()[0]
+            conn.close()
+            welcome_msg = welcome_tmpl.replace("{rule_count}", str(count))
+            welcome_msg = welcome_msg.replace("{schedule_status}", self.get_user_status())
+            print(welcome_msg)
+        except:
+            print(welcome_tmpl.replace("{rule_count}", "0").replace("{schedule_status}", ""))
+            
         print("=" * 50)
         print(f"Session: {self.session_id}")
         print(f"FAST (5-10s) | BALANCED (15-30s)")
         print(f"Smart task breakdown for complex requests")
         print("=" * 50)
         print("\nCommands: /fast, /balanced, /help, exit\n")
+
+    def load_personality(self) -> Dict:
+        """Loads personality from a JSON file."""
+        personality_path = Path(__file__).parent / "personality.json"
+        if personality_path.exists():
+            with open(personality_path, 'r', encoding='utf-8') as f:
+                print("🧠 Loading custom personality...")
+                return json.load(f)
+        else:
+            # Default personality if file doesn't exist
+            print("🧠 Using default 'James' personality.")
+            return {
+                "user_name": "James",
+                "ai_name": "BuddAI",
+                "welcome_message": "BuddAI Executive v4.0 - Decoupled & Personality Sync",
+                "schedule_check_triggers": ["what should i be doing", "my schedule", "schedule check"],
+                "schedule": {
+                    "weekdays": {"0-4": {"5.5-6.5": "Early Morning Build Session 🌅 (5:30-6:30 AM)", "6.5-17.0": "Work Hours (Facilities Caretaker) 🏢", "17.0-21.0": "Evening Build Session 🌙 (5:00-9:00 PM)", "default": "Rest Time 💤"}},
+                    "saturday": { "5": { "default": "Weekend Freedom 🎨 (Creative Mode)" } },
+                    "sunday": { "6": { "0-21.0": "Weekend Freedom 🎨 (Until 9 PM)", "default": "Rest Time 💤" } }
+                },
+                "style_scan_prompt": "Analyze this code sample from {user_name}'s repositories.\nExtract 3 distinct coding preferences or patterns.",
+                "style_reference_prompt": "\n[REFERENCE STYLE FROM {user_name}'S PAST PROJECTS]\n",
+                "integration_task_prompt": "INTEGRATION TASK: Combine modules into a cohesive GilBot system.\n\n[MODULES]\n{modules_summary}\n\n[FORGE PARAMETERS]\nSet k = {k_val} for all applyForge() calls.\n\n[REQUIREMENTS]\n1. Implement applyForge() math helper.\n2. Use k={k_val} to smooth motor and servo transitions.\n3. Ensure naming matches {user_name}'s style: activateFlipper(), setMotors()."
+            }
+
+    def __init_personality__(self):
+        """Initialize personality state."""
+        if not hasattr(self, 'personality') or self.personality is None:
+            self.personality = self.load_personality()
         
+        # Validate version
+        version = self.get_personality_value("meta.version")
+        if version != "4.0":
+            print(f"⚠️ Warning: Personality version mismatch. Loaded: {version}, Expected: 4.0")
+        
+        # Validate Schema
+        self.validate_personality_schema()
+        
+        self.personality_loaded = True
+
+    def validate_personality_schema(self) -> bool:
+        """Validate the loaded personality against required schema."""
+        if not self.personality:
+            return False
+
+        required_structure = {
+            "meta": ["version"],
+            "identity": ["user_name", "ai_name"],
+            "communication": ["welcome_message"],
+            "work_cycles": ["schedule"],
+            "forge_theory": ["enabled", "constants"],
+            "prompts": ["style_scan", "integration_task"]
+        }
+        
+        missing = []
+        for section, keys in required_structure.items():
+            if section not in self.personality:
+                missing.append(f"Missing section: {section}")
+                continue
+                
+            for key in keys:
+                if key not in self.personality[section]:
+                    missing.append(f"Missing key: {section}.{key}")
+        
+        if missing:
+            print("⚠️ Personality Schema Validation Failed:")
+            for m in missing:
+                print(f"  - {m}")
+            return False
+            
+        return True
+
+    def get_personality_value(self, path: Union[str, List[str]], default: Any = None) -> Any:
+        """Access nested personality keys using dot notation or list of keys."""
+        if isinstance(path, str):
+            keys = path.split('.')
+        else:
+            keys = path
+            
+        val = self.personality
+        for key in keys:
+            if isinstance(val, dict):
+                val = val.get(key)
+            else:
+                return default
+        return val if val is not None else default
+
     def ensure_data_dir(self) -> None:
         DATA_DIR.mkdir(exist_ok=True)
         
@@ -406,7 +517,8 @@ class BuddAI:
         if not results:
             return ""
             
-        context_block = "\n[REFERENCE STYLE FROM JAMES'S PAST PROJECTS]\n"
+        prompt_template = self.get_personality_value("prompts.style_reference", "\n[REFERENCE STYLE FROM {user_name}'S PAST PROJECTS]\n")
+        context_block = prompt_template.format(user_name=self.get_personality_value("identity.user_name", "the user"))
         for repo, func, content in results:
             # Just grab the first 500 chars of the file to save context window
             snippet = content[:500] + "..."
@@ -431,18 +543,8 @@ class BuddAI:
             
         code_sample = "\n---\n".join([r[0][:1000] for r in rows])
         
-        prompt = f"""Analyze this code sample from James's repositories.
-        Extract 3 distinct coding preferences or patterns.
-        Format: Category: Preference
-        
-        Examples:
-        - Serial: Uses 115200 baud
-        - Safety: Uses non-blocking millis()
-        - Pins: Prefers #define over const int
-        
-        Code Sample:
-        {code_sample}
-        """
+        prompt_template = self.get_personality_value("prompts.style_scan", "Analyze this code sample from {user_name}'s repositories.\nExtract 3 distinct coding preferences or patterns.\n\nCode Sample:\n{code_sample}")
+        prompt = prompt_template.format(user_name=self.get_personality_value("identity.user_name", "the user"), code_sample=code_sample)
         
         print("⚡ Analyzing with BALANCED model...")
         summary = self.call_model("balanced", prompt, system_task=True)
@@ -883,27 +985,42 @@ FINAL CHECK:
         return plan
         
     def get_user_status(self) -> str:
-        """Determine James's context based on defined schedule"""
+        """Determine user's context based on defined schedule from personality file."""
+        schedule = self.get_personality_value("work_cycles.schedule")
+        if not schedule:
+            # Fallback for simple personality files
+            schedule = self.personality.get("schedule")
+        if not schedule:
+            return "Schedule not defined."
+
         now = datetime.now()
         day = now.weekday() # 0=Mon, 6=Sun
         t = now.hour + (now.minute / 60.0)
-        
-        if day <= 4: # Mon-Fri
-            if 5.5 <= t < 6.5:
-                return "Early Morning Build Session 🌅 (5:30-6:30 AM)"
-            elif 6.5 <= t < 17.0:
-                return "Work Hours (Facilities Caretaker) 🏢"
-            elif 17.0 <= t < 21.0:
-                return "Evening Build Session 🌙 (5:00-9:00 PM)"
-            else:
-                return "Rest Time 💤"
-        elif day == 5: # Saturday
-            return "Weekend Freedom 🎨 (Creative Mode)"
-        else: # Sunday
-            if t < 21.0:
-                return "Weekend Freedom 🎨 (Until 9 PM)"
-            else:
-                return "Rest Time 💤"
+
+        # Check all schedule groups (e.g., 'weekdays', 'weekends')
+        for group, day_ranges in schedule.items():
+            for day_range, time_slots in day_ranges.items():
+                try:
+                    # Parse day range (e.g., "0-4" or "5")
+                    if '-' in day_range:
+                        start_day, end_day = map(int, day_range.split('-'))
+                        if not (start_day <= day <= end_day):
+                            continue
+                    elif int(day_range) != day:
+                        continue
+                    
+                    # We found the right day group, now check time slots
+                    for time_range, status in time_slots.items():
+                        if time_range == "default": continue
+                        start_time, end_time = map(float, time_range.split('-'))
+                        if start_time <= t < end_time:
+                            return status.get("description", status) if isinstance(status, dict) else status
+                    
+                    default_status = time_slots.get("default", "No status for this time.")
+                    return default_status.get("description", default_status) if isinstance(default_status, dict) else default_status
+                    
+                except (ValueError, TypeError): continue
+        return "No schedule match for today."
 
     def get_learned_rules(self) -> List[Dict]:
         """Retrieve high-confidence rules"""
@@ -1086,9 +1203,8 @@ FINAL CHECK:
             if step['module'] == 'integration':
                 # Final integration step with Forge Theory enforcement
                 modules_summary = '\n'.join([f"- {m}: {all_code[m][:150]}..." for m in modules if m in all_code])
-                
-                # Ask James for the 'vibe' of the robot
-                print("\n⚡ FORGE THEORY TUNING:")
+
+                print(f"\n⚡ {self.get_personality_value('identity.ai_name', 'AI')} Tuning:")
                 print("1. Aggressive (k=0.3) - High snap, combat ready")
                 print("2. Balanced (k=0.1) - Standard movement")
                 print("3. Graceful (k=0.03) - Roasting / Smooth curves")
@@ -1096,25 +1212,18 @@ FINAL CHECK:
                 if self.server_mode:
                     choice = forge_mode
                 else:
-                    choice = input("Select Forge Constant [1-3, default 2]: ")
+                    choice = input("Select Tuning Constant [1-3, default 2]: ")
                 
                 k_val = "0.1"
                 if choice == "1": k_val = "0.3"
                 elif choice == "3": k_val = "0.03"
 
-                prompt = f"""INTEGRATION TASK: Combine modules into a cohesive GilBot system.
-    
-    [MODULES]
-    {modules_summary}
-    
-    [FORGE PARAMETERS]
-    Set k = {k_val} for all applyForge() calls.
-    
-    [REQUIREMENTS]
-    1. Implement applyForge() math helper.
-    2. Use k={k_val} to smooth motor and servo transitions.
-    3. Ensure naming matches James's style: activateFlipper(), setMotors().
-    """
+                prompt_template = self.get_personality_value("prompts.integration_task", "INTEGRATION TASK: Combine modules into a cohesive system.")
+                prompt = prompt_template.format(
+                    user_name=self.get_personality_value("identity.user_name", "user"),
+                    modules_summary=modules_summary,
+                    k_val=k_val
+                )
             else:
                 # Individual module
                 prompt = f"Generate ESP32-C3 code for: {step['task']}. Keep it modular with clear comments."
@@ -1323,6 +1432,10 @@ FINAL CHECK:
             
         if cmd.startswith('/correct'):
             reason = command[8:].strip()
+            if reason.startswith('"') and reason.endswith('"'):
+                reason = reason[1:-1]
+            elif reason.startswith("'") and reason.endswith("'"):
+                reason = reason[1:-1]
             last_response = ""
             for msg in reversed(self.context_messages):
                 if msg['role'] == 'assistant':
@@ -1434,7 +1547,8 @@ FINAL CHECK:
         self.context_messages.append({"id": user_msg_id, "role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
         # Direct Schedule Check
-        if "what should i be doing" in user_message.lower() or "my schedule" in user_message.lower() or "schedule check" in user_message.lower():
+        schedule_triggers = self.get_personality_value("work_cycles.schedule_check_triggers", ["my schedule"])
+        if any(trigger in user_message.lower() for trigger in schedule_triggers):
             status = self.get_user_status()
             response = f"📅 **Schedule Check**\nAccording to your protocol, you should be: **{status}**"
             print(f"⏰ Schedule check triggered: {status}")
@@ -1682,7 +1796,8 @@ FINAL CHECK:
         try:
             force_model = None
             while True:
-                user_input = input("\nJames: ").strip()
+                user_name = self.get_personality_value("identity.user_name", "User")
+                user_input = input(f"\n{user_name}: ").strip()
                 if not user_input:
                     continue
                 if user_input.lower() in ['exit', 'quit']:
@@ -1744,6 +1859,10 @@ FINAL CHECK:
                         continue
                     elif cmd.startswith('/correct'):
                         reason = user_input[8:].strip()
+                        if reason.startswith('"') and reason.endswith('"'):
+                            reason = reason[1:-1]
+                        elif reason.startswith("'") and reason.endswith("'"):
+                            reason = reason[1:-1]
                         last_response = ""
                         # Find last assistant message
                         for msg in reversed(self.context_messages):

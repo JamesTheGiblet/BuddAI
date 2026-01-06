@@ -273,17 +273,22 @@ class SmartLearner:
             if reason and ai_interface:
                 print(f"   - Analyzing #{row_id}...", end="\r")
                 # Use LLM to extract rule from text reason
-                prompt = f"""Analyze this correction text and extract specific technical coding rules.
-                Ignore conversational filler.
+                prompt = f"""You are extracting specific coding patterns from a user correction.
                 
-                Correction Text:
+                CRITICAL INSTRUCTIONS:
+                1. If the correction contains code, formulas, or specific syntax, PRESERVE IT VERBATIM.
+                2. Do NOT generalize. (e.g. DO NOT say "Use a smoothing formula". SAY "Use: current += (target - current) * k")
+                3. Capture specific variable names, types, and values if mentioned.
+                4. If the user provides a code snippet, the rule MUST contain that snippet.
+                
+                User Correction:
                 "{reason}"
                 
-                Return ONLY a list of rules in this format:
-                Rule: <concise technical rule>
+                Return ONLY the rule in this format (no markdown, no quotes):
+                Rule: <specific technical rule with exact code/formulas>
                 """
                 try:
-                    response = ai_interface.call_model("fast", prompt, system_task=True)
+                    response = ai_interface.call_model("balanced", prompt, system_task=True)
                     for line in response.splitlines():
                         clean_line = line.strip().replace("**", "").replace("__", "")
                         rule_text = None
