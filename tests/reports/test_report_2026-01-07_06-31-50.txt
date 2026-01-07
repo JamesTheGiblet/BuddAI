@@ -1,0 +1,152 @@
+BuddAI Test Report
+Date: 2026-01-07 06:31:50
+============================================================
+
+test_actionable_suggestions (tests.test_buddai.TestBuddAICore.test_actionable_suggestions) ... ok
+test_auto_learning (tests.test_buddai.TestBuddAICore.test_auto_learning) ... ok
+test_complexity_detection (tests.test_buddai.TestBuddAICore.test_complexity_detection) ... ok
+test_connection_pool (tests.test_buddai.TestBuddAICore.test_connection_pool) ... ok
+test_context_window (tests.test_buddai.TestBuddAICore.test_context_window) ... ok
+test_database_init (tests.test_buddai.TestBuddAICore.test_database_init) ... ok
+test_feedback_system (tests.test_buddai.TestBuddAICore.test_feedback_system) ... ERROR
+test_lru_cache (tests.test_buddai.TestBuddAICore.test_lru_cache) ... ok
+test_modular_plan (tests.test_buddai.TestBuddAICore.test_modular_plan) ... ok
+test_module_detection (tests.test_buddai.TestBuddAICore.test_module_detection) ... ok
+test_rapid_session_creation (tests.test_buddai.TestBuddAICore.test_rapid_session_creation) ... FAIL
+test_repo_isolation (tests.test_buddai.TestBuddAICore.test_repo_isolation) ... ok
+test_repository_indexing (tests.test_buddai.TestBuddAICore.test_repository_indexing) ... ok
+test_schedule_awareness (tests.test_buddai.TestBuddAICore.test_schedule_awareness) ... ok
+test_search_query_safety (tests.test_buddai.TestBuddAICore.test_search_query_safety) ... ok
+test_session_export (tests.test_buddai.TestBuddAICore.test_session_export) ... ok
+test_session_management (tests.test_buddai.TestBuddAICore.test_session_management) ... ok
+test_sql_injection_prevention (tests.test_buddai.TestBuddAICore.test_sql_injection_prevention) ... ok
+test_upload_security (tests.test_buddai.TestBuddAICore.test_upload_security) ... ok
+test_websocket_logic (tests.test_buddai.TestBuddAICore.test_websocket_logic) ... ok
+test_extract_modules (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_extract_modules)
+Verify module extraction logic ... ok
+test_method_annotations (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_method_annotations)
+Verify type hints exist on key methods ... ok
+test_routing_complex_request (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_complex_request)
+Test that complex requests route to modular build ... ok
+test_routing_forced_model (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_forced_model)
+Test that force_model overrides other logic ... ok
+test_routing_search_query (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_search_query)
+Test that search queries route to repository search ... ok
+test_routing_simple_question (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_simple_question)
+Test that simple questions route to the FAST model ... ok
+test_analyze_failure (tests.test_extended_features.TestExtendedFeatures.test_analyze_failure)
+Test failure analysis logic (DB read) ... ok
+test_apply_style_signature_regex (tests.test_extended_features.TestExtendedFeatures.test_apply_style_signature_regex)
+Test regex replacement based on learned rules ... ok
+test_check_skills_trigger (tests.test_extended_features.TestExtendedFeatures.test_check_skills_trigger)
+Test skill triggering mechanism ... ok
+test_clear_session (tests.test_extended_features.TestExtendedFeatures.test_clear_session)
+Test clearing context messages ... ok
+test_get_recent_context_json (tests.test_extended_features.TestExtendedFeatures.test_get_recent_context_json)
+Test context retrieval as JSON ... ok
+test_gpu_reset (tests.test_extended_features.TestExtendedFeatures.test_gpu_reset)
+Test GPU reset delegation ... ok
+test_hardware_detection_extended (tests.test_extended_features.TestExtendedFeatures.test_hardware_detection_extended)
+Ensure hardware detection delegates to profile ... ok
+test_learned_rules_retrieval (tests.test_extended_features.TestExtendedFeatures.test_learned_rules_retrieval)
+Test retrieval of high-confidence rules ... ok
+test_log_compilation (tests.test_extended_features.TestExtendedFeatures.test_log_compilation)
+Test logging compilation results to DB ... ok
+test_personality_forge_config (tests.test_extended_features.TestExtendedFeatures.test_personality_forge_config)
+Verify Forge Theory constants are loaded from personality ... ok
+test_save_correction (tests.test_extended_features.TestExtendedFeatures.test_save_correction)
+Test saving user corrections to DB ... ok
+test_slash_command_metrics (tests.test_extended_features.TestExtendedFeatures.test_slash_command_metrics)
+Test /metrics command output ... ok
+test_slash_command_status (tests.test_extended_features.TestExtendedFeatures.test_slash_command_status)
+Test /status command output ... ok
+test_slash_command_teach (tests.test_extended_features.TestExtendedFeatures.test_slash_command_teach)
+Test /teach command saves rule to DB ... ok
+test_style_summary (tests.test_extended_features.TestExtendedFeatures.test_style_summary)
+Test retrieval of style preferences from DB ... ok
+test_chat_flow (tests.test_integration.TestBuddAIIntegration.test_chat_flow)
+POST /api/chat returns response ... ok
+test_health_check (tests.test_integration.TestBuddAIIntegration.test_health_check)
+GET / returns 200 and status ... ok
+test_multi_user_isolation_api (tests.test_integration.TestBuddAIIntegration.test_multi_user_isolation_api)
+Verify data isolation between users via API headers ... ok
+test_session_lifecycle_api (tests.test_integration.TestBuddAIIntegration.test_session_lifecycle_api)
+Test full session CRUD via API ... ok
+test_upload_api (tests.test_integration.TestBuddAIIntegration.test_upload_api)
+Test file upload endpoint ... ok
+test_advanced_features (tests.test_personality.TestPersonality.test_advanced_features)
+Verify Deep Key Access ... ok
+test_communication_style (tests.test_personality.TestPersonality.test_communication_style)
+Verify Communication & Phrases ... ok
+test_forge_theory (tests.test_personality.TestPersonality.test_forge_theory)
+Verify Forge Theory Configuration ... ok
+test_identity_meta (tests.test_personality.TestPersonality.test_identity_meta)
+Verify Identity & Meta ... ok
+test_interaction_modes (tests.test_personality.TestPersonality.test_interaction_modes)
+Verify Interaction Modes ... ok
+test_schedule_logic (tests.test_personality.TestPersonality.test_schedule_logic)
+Test Schedule & Work Cycles ... ok
+test_technical_preferences (tests.test_personality.TestPersonality.test_technical_preferences)
+Verify Technical Preferences ... FAIL
+test_calculator_logic (tests.test_skills.TestSkills.test_calculator_logic)
+Verify calculator skill math ... ok
+test_registry_loading (tests.test_skills.TestSkills.test_registry_loading)
+Ensure skills are discovered and loaded ... ok
+test_timer_parsing (tests.test_skills.TestSkills.test_timer_parsing)
+Verify timer parses duration correctly ... ok
+test_weather_mock (tests.test_skills.TestSkills.test_weather_mock)
+Verify weather skill with mocked network ... ok
+
+======================================================================
+ERROR: test_feedback_system (tests.test_buddai.TestBuddAICore.test_feedback_system)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_buddai.py", line 554, in test_feedback_system
+    cursor.execute("SELECT positive FROM feedback WHERE message_id = ?", (msg_id,))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: feedback
+
+======================================================================
+FAIL: test_rapid_session_creation (tests.test_buddai.TestBuddAICore.test_rapid_session_creation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_buddai.py", line 432, in test_rapid_session_creation
+    self.assertEqual(ids, expected)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['20260107_063150_2', '20260107_063150_3', '20[54 chars]0_6'] != ['20250101_120000', '20250101_120000_1', '2025[52 chars]0_4']
+
+First differing element 0:
+'20260107_063150_2'
+'20250101_120000'
+
+- ['20260107_063150_2',
+-  '20260107_063150_3',
+-  '20260107_063150_4',
+-  '20260107_063150_5',
+-  '20260107_063150_6']
++ ['20250101_120000',
++  '20250101_120000_1',
++  '20250101_120000_2',
++  '20250101_120000_3',
++  '20250101_120000_4']
+
+======================================================================
+FAIL: test_technical_preferences (tests.test_personality.TestPersonality.test_technical_preferences)
+Verify Technical Preferences
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_personality.py", line 53, in test_technical_preferences
+    self.assertEqual(baud, 115200)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: '115200 always for ESP32' != 115200
+
+----------------------------------------------------------------------
+Ran 57 tests in 1.804s
+
+FAILED (failures=2, errors=1)
+
+============================================================
+SUMMARY:
+Ran: 57 tests
+Failures: 2
+Errors: 1

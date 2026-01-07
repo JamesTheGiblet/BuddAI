@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 from urllib.parse import urlparse
-import sys, os, json, logging, sqlite3, datetime, re, zipfile, shutil, queue, argparse, io
+import sys, os, json, logging, sqlite3, re, zipfile, shutil, queue, argparse, io
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
 
-from anthropic import BaseModel
 import psutil
 
 from core.buddai_analytics import LearningMetrics
 from core.buddai_validation import CodeValidator, HardwareProfile
+from core.buddai_confidence import ConfidenceScorer
 from core.buddai_memory import AdaptiveLearner, ShadowSuggestionEngine, SmartLearner
 from core.buddai_shared import DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
 from core.buddai_training import ModelFineTuner
@@ -45,6 +45,7 @@ class BuddAI:
         self.hardware_profile = HardwareProfile()
         self.current_hardware = "ESP32-C3"
         self.validator = CodeValidator()
+        self.confidence_scorer = ConfidenceScorer()
         self.adaptive_learner = AdaptiveLearner()
         self.metrics = LearningMetrics()
         self.fine_tuner = ModelFineTuner()
@@ -340,12 +341,10 @@ class BuddAI:
         rules = self.get_learned_rules()
         for r in rules:
             if r['confidence'] >= 0.95 and r['find'] and r['replace']:
-                # Simple safety check: don't replace if replacement contains spaces (likely a description)
-                if ' ' not in r['replace']:
-                    try:
-                        generated_code = re.sub(r['find'], r['replace'], generated_code)
-                    except re.error:
-                        pass
+                try:
+                    generated_code = re.sub(r['find'], r['replace'], generated_code)
+                except re.error:
+                    pass
         
         return generated_code
 
@@ -637,7 +636,33 @@ class BuddAI:
                     f"   Memory:   {mem_usage}\n"
                     f"   Messages: {len(self.context_messages)}")
 
+        if cmd == '/backup':
+            success, msg = self.create_backup()
+            if success:
+                return f"✅ Database backed up to: {msg}"
+            return f"❌ Backup failed: {msg}"
+
+        if cmd == '/train':
+            result = self.fine_tuner.prepare_training_data()
+            return f"✅ {result}"
+
+        if cmd.startswith('/save'):
+            if 'json' in cmd:
+                return self.export_session_to_json()
+            else:
+                return self.export_session_to_markdown()
+
         return f"Command {cmd.split()[0]} not supported in chat mode."
+
+    def log_fallback_prompt(self, model: str, prompt: str) -> None:
+        """Log fallback prompts to a file for easy access"""
+        log_path = DATA_DIR / "external_prompts.log"
+        timestamp = datetime.now().isoformat()
+        try:
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] MODEL: {model.upper()}\n{prompt}\n{'-'*40}\n")
+        except Exception as e:
+            print(f"Failed to log fallback prompt: {e}")
 
 
     # --- Main Chat Method ---
@@ -690,10 +715,19 @@ class BuddAI:
         # Extract code blocks
         code_blocks = self.extract_code(response)
         
+        # Confidence Setup
+        min_confidence = 100
+        rules = [r['rule'] for r in self.get_learned_rules()] if code_blocks else []
+        context = {'hardware': self.current_hardware, 'user_message': user_message, 'learned_rules': rules}
+
         # Validate each code block
         for code in code_blocks:
             valid, issues = self.validator.validate(code, self.current_hardware, user_message)
             
+            # Score block
+            block_conf = self.confidence_scorer.calculate_confidence(code, context, (valid, issues))
+            min_confidence = min(min_confidence, block_conf)
+
             if not valid:
                 # Auto-fix critical issues
                 fixed_code = self.validator.auto_fix(code, issues)
@@ -709,6 +743,27 @@ class BuddAI:
                 for issue in issues:
                     if issue['severity'] == 'error':
                         response += f"- {issue['message']}\n"
+        
+        # Flag Low Confidence / Fallback
+        fallback_cfg = self.personality_manager.get_value("ai_fallback", {})
+        threshold = fallback_cfg.get("confidence_threshold", 70)
+
+        if code_blocks and self.confidence_scorer.should_escalate(min_confidence, threshold):
+            if fallback_cfg.get("enabled", False):
+                models = fallback_cfg.get("fallback_models", ["external"])
+                prompts_map = fallback_cfg.get("prompts", {})
+                
+                response += f"\n\n🔄 **Fallback Triggered** (Confidence {min_confidence}% < {threshold}%)\n"
+                
+                for model in models:
+                    tmpl = prompts_map.get(model, f"System: Fallback ({model}). Context: {{context}}")
+                    prompt = tmpl.format(context=user_message)
+                    response += f"\n   **{model.upper()} Prompt**:\n   > {prompt}\n"
+                    self.log_fallback_prompt(model, prompt)
+                
+                response += f"\n(Prompts logged to external_prompts.log)"
+            else:
+                response += f"\n\n⚠️ **Low Confidence ({min_confidence}%)**: Please verify generated code."
         
         # Generate Suggestion Bar
         suggestions = self.shadow_engine.get_all_suggestions(user_message, response)

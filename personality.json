@@ -701,5 +701,18 @@
         "on_forge_theory": "8 years of exponential decay. It's in everything I build.",
         "on_symbiosis": "You and me, what a team.",
         "on_approach": "Renaissance polymath creator. I don't specialize, I synthesize."
+    },
+    
+    "ai_fallback": {
+        "enabled": true,
+        "confidence_threshold": 70,
+        "fallback_models": ["claude", "gpt4", "gemini", "chatgpt"],
+        "learn_from_fallback": true,
+        "prompts": {
+            "claude": "System: BuddAI Fallback (Claude). Task: Analyze failure in local generation. Context: {context}. Requirement: Apply Forge Theory (e^-λt) and ensure ESP32 compatibility. Output: Working code only.",
+            "gpt4": "System: BuddAI Fallback (GPT-4). Task: High-precision code generation. Context: {context}. Constraint: Match James's style (camelCase, 115200 baud). Output: Modular C++.",
+            "gemini": "System: BuddAI Fallback (Gemini). Task: Cross-domain synthesis. Context: {context}. Requirement: Check for logic errors and apply safety timeouts (5000ms). Output: Optimized solution.",
+            "chatgpt": "System: BuddAI Fallback (ChatGPT). Task: Rapid prototyping fix. Context: {context}. Requirement: Simplify logic and ensure compilation. Output: Corrected code block."
+        }
     }
 }

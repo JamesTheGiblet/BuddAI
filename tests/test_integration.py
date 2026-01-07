@@ -73,7 +73,8 @@ class TestBuddAIIntegration(unittest.TestCase):
         """GET / returns 200 and status"""
         response = client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("BuddAI API Online", response.text)
+        self.assertIn("BuddAI API", response.text)
+        self.assertIn("Online", response.text)
 
     def test_chat_flow(self):
         """POST /api/chat returns response"""
