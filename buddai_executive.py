@@ -10,6 +10,7 @@ import psutil
 from core.buddai_analytics import LearningMetrics
 from core.buddai_validation import CodeValidator, HardwareProfile
 from core.buddai_confidence import ConfidenceScorer
+from core.buddai_fallback import FallbackClient
 from core.buddai_memory import AdaptiveLearner, ShadowSuggestionEngine, SmartLearner
 from core.buddai_shared import DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
 from core.buddai_training import ModelFineTuner
@@ -46,6 +47,7 @@ class BuddAI:
         self.current_hardware = "ESP32-C3"
         self.validator = CodeValidator()
         self.confidence_scorer = ConfidenceScorer()
+        self.fallback_client = FallbackClient()
         self.adaptive_learner = AdaptiveLearner()
         self.metrics = LearningMetrics()
         self.fine_tuner = ModelFineTuner()
@@ -645,6 +647,17 @@ class BuddAI:
         if cmd == '/train':
             result = self.fine_tuner.prepare_training_data()
             return f"✅ {result}"
+            
+        if cmd == '/logs':
+            log_path = DATA_DIR / "external_prompts.log"
+            if not log_path.exists():
+                return "❌ No external prompts logged yet."
+            try:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+                    return f"📜 External Prompts Log (Last 15 lines):\n{''.join(lines[-15:])}"
+            except Exception as e:
+                return f"❌ Error reading log: {e}"
 
         if cmd.startswith('/save'):
             if 'json' in cmd:
@@ -755,7 +768,15 @@ class BuddAI:
                 
                 response += f"\n\n🔄 **Fallback Triggered** (Confidence {min_confidence}% < {threshold}%)\n"
                 
+                active_fallbacks = ["gemini", "gpt4", "chatgpt"]
+
                 for model in models:
+                    if model in active_fallbacks:
+                        print(f"✨ Escalating to {model.upper()}...")
+                        result = self.fallback_client.escalate(model, user_message, response, min_confidence)
+                        response += f"\n{result}\n"
+                        continue
+                    
                     tmpl = prompts_map.get(model, f"System: Fallback ({model}). Context: {{context}}")
                     prompt = tmpl.format(context=user_message)
                     response += f"\n   **{model.upper()} Prompt**:\n   > {prompt}\n"

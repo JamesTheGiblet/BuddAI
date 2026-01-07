@@ -38,6 +38,7 @@ class TestFallbackPrompts(unittest.TestCase):
         # Setup default mocks
         self.ai.validator.validate.return_value = (True, [])
         self.ai.hardware_profile.detect_hardware.return_value = "ESP32"
+        self.ai.hardware_profile.apply_hardware_rules.return_value = "mocked_code_response"
         self.ai.extract_code = MagicMock(return_value=["void setup() {}"])
 
     def test_specific_prompts_used(self):
