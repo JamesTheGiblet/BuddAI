@@ -13,7 +13,7 @@ The most recent development sprint focused on the **Fallback Client** (escalatin
 ### 1. Fallback Client (`tests/test_fallback_client.py`)
 
 | Test Name | Description |
-|-----------|-------------|
+| ----------- | ------------- |
 | `test_escalate_success` | Verifies successful escalation to **Gemini** and response retrieval. |
 | `test_escalate_openai` | Verifies successful escalation to **GPT-4** with correct context injection. |
 | `test_escalate_claude` | Verifies successful escalation to **Claude** (Anthropic). |
@@ -23,7 +23,7 @@ The most recent development sprint focused on the **Fallback Client** (escalatin
 ### 2. Fallback Logic (`tests/test_fallback_logic.py`)
 
 | Test Name | Description |
-|-----------|-------------|
+| ----------- | ------------- |
 | `test_fallback_triggered` | Ensures fallback triggers when confidence < threshold (e.g., 50% < 80%). |
 | `test_fallback_disabled` | Verifies that fallback does NOT trigger if disabled in personality settings. |
 | `test_fallback_learning` | **Critical:** Verifies that a successful fallback response triggers `learner.store_rule()`. |
@@ -31,24 +31,24 @@ The most recent development sprint focused on the **Fallback Client** (escalatin
 ### 3. Prompts & Logging (`tests/test_fallback_prompts.py`, `tests/test_fallback_logging.py`)
 
 | Test Name | Description |
-|-----------|-------------|
+| ----------- | ------------- |
 | `test_specific_prompts_used` | Ensures model-specific prompts (defined in personality) are used for specific providers. |
 | `test_fallback_logging` | Verifies that external prompts are logged to `data/external_prompts.log` for auditing. |
 | `test_logs_command` | Tests the `/logs` slash command to retrieve these logs. |
 
 ### 4. Analytics (`tests/test_analytics.py`)
 
-| Test Name | Description |
-|-----------|-------------|
-| `test_fallback_stats` | Verifies calculation of Fallback Rate and Learning Success % from the database. |
-| `test_fallback_stats_empty` | Ensures analytics don't crash on an empty database (divide by zero protection). |
+| Test Name                   | Description                                                                           |
+|-----------------------------|---------------------------------------------------------------------------------------|
+| `test_fallback_stats`       | Verifies calculation of Fallback Rate and Learning Success % from the database.       |
+| `test_fallback_stats_empty` | Ensures analytics don't crash on an empty database (divide by zero protection).       |
 
 ### 5. Validators (`tests/test_refactored_validators.py`)
 
-| Test Name | Description |
-|-----------|-------------|
-| `test_esp32_validator` | Verifies ESP32-specific checks (e.g. analogWrite vs ledcWrite). |
-| `test_style_validator` | Verifies style enforcement (camelCase, modularity). |
+| Test Name              | Description                                                    |
+|------------------------|----------------------------------------------------------------|
+| `test_esp32_validator` | Verifies ESP32-specific checks (e.g. analogWrite vs ledcWrite).|
+| `test_style_validator` | Verifies style enforcement (camelCase, modularity).            |
 
 ---
 
