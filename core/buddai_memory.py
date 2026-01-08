@@ -349,6 +349,20 @@ class SmartLearner:
         conn.commit()
         conn.close()
 
+    def store_rule(self, pattern: str, confidence: float, source: str):
+        """Store a single rule from fallback or other sources"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO code_rules 
+            (rule_text, pattern_find, pattern_replace, confidence, learned_from)
+            VALUES (?, ?, ?, ?, ?)
+        """, (pattern, "", "", confidence, source))
+        
+        conn.commit()
+        conn.close()
+
     def diff_code(self, original: str, corrected: str) -> str:
         """Generate a simple diff"""
         return "\n".join(difflib.unified_diff(

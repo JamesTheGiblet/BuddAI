@@ -35,7 +35,34 @@ class LearningMetrics:
             "correction_rate": correction_rate,
             "improvement": self.calculate_trend()
         }
-    
+        
+    def get_fallback_stats(self):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # 1. Total Assistant Responses & Escalations
+        cursor.execute("SELECT COUNT(*) FROM messages WHERE role = 'assistant'")
+        total_responses = cursor.fetchone()[0] or 0
+        
+        cursor.execute("SELECT COUNT(*) FROM messages WHERE role = 'assistant' AND content LIKE '%Fallback Triggered%'")
+        total_escalations = cursor.fetchone()[0] or 0
+        
+        # 2. Learned Rules from Fallback
+        cursor.execute("SELECT COUNT(*) FROM code_rules WHERE learned_from LIKE 'fallback_%'")
+        learned_rules_count = cursor.fetchone()[0] or 0
+        
+        conn.close()
+        
+        fallback_rate = (total_escalations / total_responses * 100) if total_responses > 0 else 0.0
+        learning_success = (learned_rules_count / total_escalations * 100) if total_escalations > 0 else 0.0
+        
+        return {
+            "total_escalations": total_escalations,
+            "fallback_rate": round(fallback_rate, 1),
+            "learning_success": round(learning_success, 1),
+            "most_escalated_topics": []
+        }
+           
     def calculate_trend(self):
         """Is BuddAI getting better over time?"""
         # Compare last 7 days vs previous 7 days

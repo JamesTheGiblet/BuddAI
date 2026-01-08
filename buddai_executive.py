@@ -528,7 +528,7 @@ class BuddAI:
 
     def handle_slash_command(self, command: str) -> str:
         """Handle slash commands when received via chat interface"""
-        cmd = command.lower()
+        cmd = command.lower().strip()
         
         if cmd.startswith('/teach'):
             rule = command[7:].strip()
@@ -583,6 +583,13 @@ class BuddAI:
                     f"   Accuracy:        {stats['accuracy']:.1f}%\n"
                     f"   Correction Rate: {stats['correction_rate']:.1f}%\n"
                     f"   Trend (7d):      {stats['improvement']}")
+
+        if cmd == '/fallback-stats':
+            stats = self.metrics.get_fallback_stats()
+            return (f"📊 Fallback Statistics:\n"
+                    f"   Total escalations: {stats['total_escalations']}\n"
+                    f"   Fallback rate: {stats['fallback_rate']}%\n"
+                    f"   Learning success: {stats['learning_success']}%")
 
         if cmd == '/debug':
             if self.last_prompt_debug:
@@ -732,10 +739,13 @@ class BuddAI:
         min_confidence = 100
         rules = [r['rule'] for r in self.get_learned_rules()] if code_blocks else []
         context = {'hardware': self.current_hardware, 'user_message': user_message, 'learned_rules': rules}
+        all_issues = []
 
         # Validate each code block
         for code in code_blocks:
             valid, issues = self.validator.validate(code, self.current_hardware, user_message)
+            if issues:
+                all_issues.extend(issues)
             
             # Score block
             block_conf = self.confidence_scorer.calculate_confidence(code, context, (valid, issues))
@@ -768,12 +778,36 @@ class BuddAI:
                 
                 response += f"\n\n🔄 **Fallback Triggered** (Confidence {min_confidence}% < {threshold}%)\n"
                 
-                active_fallbacks = ["gemini", "gpt4", "chatgpt"]
+                active_fallbacks = ["gemini", "gpt4", "chatgpt", "claude"]
+                style_summary = self.get_style_summary()
 
                 for model in models:
                     if model in active_fallbacks:
-                        print(f"✨ Escalating to {model.upper()}...")
-                        result = self.fallback_client.escalate(model, user_message, response, min_confidence)
+                        # Check if client is actually configured before announcing escalation
+                        if not self.fallback_client.is_available(model):
+                            continue
+
+                        print(f"🔄 Escalating to {model.upper()}...")
+                        result = self.fallback_client.escalate(
+                            model, user_message, response, min_confidence,
+                            validation_issues=all_issues,
+                            hardware_profile=self.current_hardware,
+                            style_preferences=style_summary
+                        )
+                        
+                        if "⚠️" not in result and "❌" not in result:
+                            print(f"✅ Received improved solution from {model.upper()}")
+                            
+                            # Learning Loop: Extract patterns from fallback success
+                            fallback_blocks = self.extract_code(result)
+                            if fallback_blocks and code_blocks:
+                                patterns = self.fallback_client.extract_learning_patterns(code_blocks[0], fallback_blocks[0])
+                                for p in patterns:
+                                    if len(p.strip()) > 5:  # Filter noise
+                                        self.learner.store_rule(p, 0.6, f"fallback_{model}")
+                                if patterns:
+                                    print(f"🧠 Learned {len(patterns)} patterns from {model.upper()} fallback.")
+                            
                         response += f"\n{result}\n"
                         continue
                     
@@ -1088,6 +1122,13 @@ class BuddAI:
                         print(f"   Correction Rate: {stats['correction_rate']:.1f}%")
                         print(f"   Trend (7d):      {stats['improvement']}")
                         print("")
+                        continue
+                    elif cmd == '/fallback-stats':
+                        stats = self.metrics.get_fallback_stats()
+                        print(f"📊 Fallback Statistics:")
+                        print(f"   Total escalations: {stats['total_escalations']}")
+                        print(f"   Fallback rate: {stats['fallback_rate']}%")
+                        print(f"   Learning success: {stats['learning_success']}%")
                         continue
                     elif cmd == '/debug':
                         if self.last_prompt_debug:

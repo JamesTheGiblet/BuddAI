@@ -36,6 +36,11 @@ class TestFallbackLogic(unittest.TestCase):
         self.ai.shadow_engine = MagicMock()
         self.ai.shadow_engine.get_all_suggestions.return_value = []
         
+        # Mock FallbackClient to avoid AttributeError and simulate responses
+        self.ai.fallback_client = MagicMock()
+        self.ai.fallback_client.is_available.return_value = True
+        self.ai.fallback_client.escalate.side_effect = lambda model, *args, **kwargs: f"Fallback Triggered: {model} response"
+        
         # Setup default mocks
         self.ai.validator.validate.return_value = (True, [])
         self.ai.hardware_profile.detect_hardware.return_value = "ESP32"
@@ -88,6 +93,49 @@ class TestFallbackLogic(unittest.TestCase):
         # Verify Standard Warning
         self.assertIn("Low Confidence", response)
         self.assertNotIn("Fallback Triggered", response)
+
+    def test_fallback_learning(self):
+        """Test that successful fallback triggers learning"""
+        # Configure Personality to enable fallback
+        self.ai.personality_manager.get_value.side_effect = lambda key, default=None: {
+            "enabled": True,
+            "confidence_threshold": 80,
+            "fallback_models": ["claude"]
+        } if key == "ai_fallback" else default
+
+        # Configure Scorer to return low confidence
+        self.ai.confidence_scorer.calculate_confidence.return_value = 50
+        self.ai.confidence_scorer.should_escalate.return_value = True
+
+        # Mock LLM response
+        self.ai.llm.query.return_value = "Bad Code: ```cpp\nvoid setup() { delay(1000); }\n```"
+        
+        # Ensure hardware profile doesn't swallow the code
+        self.ai.hardware_profile.apply_hardware_rules.side_effect = lambda code, *args: code
+        
+        # Mock Fallback Client Success
+        self.ai.fallback_client.escalate.side_effect = None
+        self.ai.fallback_client.escalate.return_value = "Here is fixed code:\n```cpp\nvoid setup() { millis(); }\n```"
+        self.ai.fallback_client.extract_learning_patterns.return_value = ["Use millis()"]
+        
+        # Mock Learner
+        self.ai.learner = MagicMock()
+        
+        # Mock extract_code to handle multiple calls
+        def extract_side_effect(text):
+            if "Bad Code" in text:
+                return ["void setup() { delay(1000); }"]
+            if "fixed code" in text:
+                return ["void setup() { millis(); }"]
+            return []
+        self.ai.extract_code.side_effect = extract_side_effect
+        
+        # Run chat
+        with patch('builtins.print'):
+            self.ai.chat("fix code")
+            
+        # Verify store_rule called
+        self.ai.learner.store_rule.assert_called_with("Use millis()", 0.6, "fallback_claude")
 
 if __name__ == '__main__':
     unittest.main()

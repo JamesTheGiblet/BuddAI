@@ -36,6 +36,10 @@ class TestFallbackLogging(unittest.TestCase):
         self.ai.shadow_engine = MagicMock()
         self.ai.shadow_engine.get_all_suggestions.return_value = []
         
+        # Mock FallbackClient
+        self.ai.fallback_client = MagicMock()
+        self.ai.fallback_client.is_available.return_value = True
+        
         # Setup default mocks
         self.ai.validator.validate.return_value = (True, [])
         self.ai.hardware_profile.detect_hardware.return_value = "ESP32"
@@ -60,6 +64,13 @@ class TestFallbackLogging(unittest.TestCase):
 
         # Mock LLM
         self.ai.llm.query.return_value = "Code: ```cpp\nvoid setup() {}\n```"
+        
+        # Simulate file write in mock escalate since we mocked the client
+        def escalate_side_effect(*args, **kwargs):
+            with open(DATA_DIR / "external_prompts.log", "a", encoding="utf-8") as f:
+                f.write("Claude Prompt: fix logic\nMODEL: CLAUDE")
+            return "Fallback response"
+        self.ai.fallback_client.escalate.side_effect = escalate_side_effect
         
         # Mock file opening
         m = mock_open()

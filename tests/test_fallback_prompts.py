@@ -35,6 +35,10 @@ class TestFallbackPrompts(unittest.TestCase):
         self.ai.shadow_engine = MagicMock()
         self.ai.shadow_engine.get_all_suggestions.return_value = []
         
+        # Mock FallbackClient
+        self.ai.fallback_client = MagicMock()
+        self.ai.fallback_client.is_available.return_value = True
+        
         # Setup default mocks
         self.ai.validator.validate.return_value = (True, [])
         self.ai.hardware_profile.detect_hardware.return_value = "ESP32"
@@ -60,6 +64,15 @@ class TestFallbackPrompts(unittest.TestCase):
 
         # Mock LLM
         self.ai.llm.query.return_value = "Code: ```cpp\nvoid setup() {}\n```"
+        
+        # Mock escalate to return the expected prompt string based on model
+        def escalate_side_effect(model, prompt, *args, **kwargs):
+            if model == "claude":
+                return "Claude Prompt: fix the motor"
+            if model == "gpt4":
+                return "GPT4 Prompt: fix the motor"
+            return "Fallback"
+        self.ai.fallback_client.escalate.side_effect = escalate_side_effect
         
         # Run
         user_msg = "fix the motor"

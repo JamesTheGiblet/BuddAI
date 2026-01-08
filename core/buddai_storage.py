@@ -112,6 +112,20 @@ class StorageManager:
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS fallback_solutions (
+                id INTEGER PRIMARY KEY,
+                timestamp TEXT,
+                user_request TEXT,
+                buddai_attempt TEXT,
+                buddai_confidence REAL,
+                fallback_model TEXT,
+                fallback_solution TEXT,
+                validation_improved BOOLEAN,
+                learned_pattern TEXT
+            )
+        """)
+
         # Migrations (Idempotent)
         try: cursor.execute("ALTER TABLE sessions ADD COLUMN title TEXT")
         except: pass
