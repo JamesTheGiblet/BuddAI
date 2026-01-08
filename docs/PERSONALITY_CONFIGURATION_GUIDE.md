@@ -1,27 +1,41 @@
-# Personality Configuration Guide
+# BuddAI Personality Configuration Guide (CORRECTED)
 
-## Encoding Human Personality into P.DE.I
+**Making BuddAI truly YOURS by teaching it how YOU think, work, and live.**
 
-**Making the AI truly YOURS by teaching it how YOU think, work, and live.**
+---
+
+```markdown
+# BuddAI Personality Configuration Guide
+
+## Encoding YOUR Cognition into Your Personal Exocortex
+
+**BuddAI becomes an extension of YOUR mind when it understands how YOU think, work, and live.**
 
 ---
 
 ## 🧬 Philosophy
 
-The AI becomes an extension of you when it understands:
-- ✅ How you think (cognitive patterns)
-- ✅ How you work (routines and cycles)
-- ✅ How you communicate (style and tone)
-- ✅ What you value (priorities and principles)
-- ✅ How you build (methodologies and approaches)
+BuddAI is not a generic AI assistant. It's YOUR cognitive partner—an external processor that learns YOUR patterns, YOUR style, YOUR methodologies.
+
+**BuddAI becomes truly yours when it understands:**
+
+- ✅ How YOU think (cognitive patterns)
+- ✅ How YOU work (routines and cycles)
+- ✅ How YOU communicate (style and tone)
+- ✅ What YOU value (priorities and principles)
+- ✅ How YOU build (methodologies and approaches)
 
 **This is beyond code generation. This is personality integration.**
 
+**Not a second mind. An extension of YOUR mind.**
+
 ---
 
-## 📋 Personality Data Structure
+## 📋 The Seven Dimensions of YOU
 
 ### 1. Identity & Core Values
+
+**Who you are and what drives you**
 
 ```yaml
 identity:
@@ -30,42 +44,50 @@ identity:
   philosophy: "Your Core Philosophy"
   
   core_values:
-    - "Value 1: What you stand for"
-    - "Value 2: Your guiding principle"
-    - "Value 3: What drives you"
+    - "What you stand for"
+    - "Your guiding principle"
+    - "What drives you"
   
   operating_principles:
-    - "Principle 1: How you approach problems"
-    - "Principle 2: Your decision framework"
-    - "Principle 3: Your quality standard"
+    - "How you approach problems"
+    - "Your decision framework"
+    - "Your quality standard"
   
   signature_phrases:
-    - "Phrase you always say"
-    - "Your catchphrase"
+    - "Phrases you always say"
+    - "Your catchphrases"
     - "How you express yourself"
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 identity:
-  name: "Developer"
-  role: "Full-Stack Engineer"
-  philosophy: "Build fast, iterate faster, ship quality"
+  name: "James"
+  role: "Embedded Systems Developer"
+  philosophy: "I build what I want. People play games, I make stuff."
   
   core_values:
-    - "Pragmatism over perfection"
-    - "Rapid prototyping validates ideas"
-    - "Code should tell a story"
+    - "Action over planning"
+    - "Dopamine through wins"
+    - "Everything is a system with learnable rules"
   
   operating_principles:
-    - "Test ideas with minimal viable code"
-    - "Refactor when patterns emerge"
-    - "Documentation is future-you's best friend"
+    - "Build to understand, not plan to build"
+    - "Make it tangible so I can touch it"
+    - "Roadmaps prevent Gizmo spirals"
+  
+  signature_phrases:
+    - "You and me, what a team"
+    - "Busy busy lol"
+    - "Let me at it"
 ```
 
 ---
 
-### 2. Work Patterns & Cycles
+## 2. Work Patterns & Cycles
+
+### Your natural rhythms and productivity windows
 
 ```yaml
 work_cycles:
@@ -73,41 +95,43 @@ work_cycles:
     duration: "Your work cycle length"
     description: "How you structure time"
     energy_pattern: "When you're most productive"
+    dopamine_half_life: "How long you maintain focus"
   
   daily_routine:
     peak_hours: "Your best hours"
     build_sessions: "When you code"
-    reflection_time: "When you review"
+    recovery_time: "When you recharge"
   
   weekly_rhythm:
     monday: "Your Monday approach"
-    friday: "Your Friday style"
     weekend: "Your weekend mode"
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 work_cycles:
   primary_cycle:
-    duration: "90-minute focus blocks"
-    description: "Deep work followed by break"
-    energy_pattern: "Morning: strategy, Afternoon: execution"
+    duration: "20-hour dopamine window"
+    description: "Need wins every 20 hours to maintain connection"
+    energy_pattern: "Morning peak 5:30-6:30am, Evening peak 5-9pm"
+    dopamine_half_life: "20 hours - lose thread if no win"
   
   daily_routine:
-    peak_hours: "6-10am (morning clarity)"
-    build_sessions: "After morning coffee, before lunch"
-    reflection_time: "End of day, review what shipped"
+    peak_hours: "5:30-6:30am (morning clarity), 5-9pm (evening execution)"
+    build_sessions: "Morning: strategy, Evening: implementation"
+    recovery_time: "3-5pm (post-work decompress + smoke)"
   
   weekly_rhythm:
-    monday: "Planning and architecture"
-    wednesday: "Deep implementation"
-    friday: "Testing and documentation"
-    weekend: "Side projects and learning"
+    monday: "Fresh dopamine, high energy"
+    weekend: "Creative freedom, experimental mode"
 ```
 
 ---
 
 ### 3. Communication Style
+
+#### How you prefer to interact and receive information
 
 ```yaml
 communication:
@@ -119,7 +143,7 @@ communication:
   
   preferences:
     verbosity: "Concise | Detailed | Adaptive"
-    technical_depth: "ELI5 | Standard | Deep-dive"
+    technical_depth: "Just code | Code + context | Full explanation"
     humor: "Serious | Occasional | Frequent"
   
   language_patterns:
@@ -128,87 +152,92 @@ communication:
     completion: ["Your done phrases"]
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 communication:
   tone:
-    default: "Direct and practical"
-    explaining: "Patient with analogies"
-    debugging: "Systematic and methodical"
-    celebrating: "Understated but genuine"
+    default: "Direct, no fluff"
+    explaining: "Show don't tell, working code first"
+    debugging: "Give me the fix, explain why later"
+    celebrating: "Understated but genuine - 'nice' or 'perfect'"
   
   preferences:
-    verbosity: "Concise by default, detailed when needed"
-    technical_depth: "Adaptive to context"
-    humor: "Occasional dry wit"
+    verbosity: "Concise - code only unless I ask"
+    technical_depth: "Assume I know the basics, show advanced patterns"
+    humor: "Occasional dry humor, British style"
   
   language_patterns:
-    confirmations: ["Got it", "Makes sense", "Clear"]
-    thinking: ["Let me think...", "Interesting...", "Hmm..."]
-    completion: ["Done", "Shipped", "Live"]
+    confirmations: ["ya get me", "makes sense", "clear"]
+    thinking: ["let me think...", "interesting..."]
+    completion: ["done", "sorted", "shipped"]
 ```
 
 ---
 
 ### 4. Technical Preferences
 
+#### Your coding philosophy and patterns
+
 ```yaml
 technical_style:
   code_philosophy:
-    - "Your coding belief 1"
-    - "Your coding belief 2"
+    - "Your coding beliefs"
+    - "Your quality standards"
   
   tools:
     preferred: ["Your go-to tools"]
     avoided: ["Tools you don't use"]
-    experimental: ["Tools you're exploring"]
   
   patterns:
     naming: "Your naming convention"
     structure: "How you organize code"
     documentation: "Your doc style"
   
-  quality_standards:
-    - "Your code quality bar"
-    - "Your testing approach"
-    - "Your shipping criteria"
+  methodologies:
+    unique_approaches: ["Your custom frameworks"]
+    constants: ["Your formula values"]
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 technical_style:
   code_philosophy:
-    - "Readable code is better than clever code"
-    - "Functions should do one thing well"
-    - "Tests document intent"
+    - "Make it tangible - I learn by touching"
+    - "Single file = zero friction"
+    - "Working code beats perfect plans"
   
   tools:
-    preferred: ["VS Code", "Git", "Docker"]
-    avoided: ["Heavy IDEs", "GUI Git clients"]
-    experimental: ["AI assistants", "Nix"]
+    preferred: ["VS Code", "PlatformIO", "ESP32", "Ollama"]
+    avoided: ["Heavy IDEs", "Cloud services"]
   
   patterns:
-    naming: "Descriptive camelCase, avoid abbreviations"
-    structure: "Feature folders, not type folders"
-    documentation: "Comments explain why, not what"
+    naming: "camelCase, descriptive"
+    structure: "Single file for prototypes, modular for production"
+    documentation: "Comments explain why, code shows how"
   
-  quality_standards:
-    - "Compiles without warnings"
-    - "Core logic has tests"
-    - "README has quick start"
+  methodologies:
+    forge_theory:
+      formula: "current += (target - current) * k"
+      k_aggressive: 0.3  # Combat robotics
+      k_balanced: 0.1    # Standard control
+      k_graceful: 0.03   # Smooth curves
 ```
 
 ---
 
 ### 5. Decision Making Process
 
+#### How you approach problems and make choices
+
 ```yaml
 decision_framework:
   approach: "How you make decisions"
   
   when_exploring:
-    - "What you do when learning"
-    - "How you prototype"
+    - "How you learn new things"
+    - "Your prototyping approach"
   
   when_building:
     - "Your production criteria"
@@ -216,7 +245,7 @@ decision_framework:
   
   when_stuck:
     - "Your debugging process"
-    - "Who/what you consult"
+    - "What helps you unstick"
   
   priorities:
     1: "Your top priority"
@@ -224,35 +253,38 @@ decision_framework:
     3: "Your third priority"
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 decision_framework:
-  approach: "Data-driven but trust intuition for direction"
+  approach: "Start building immediately, adjust based on reality"
   
   when_exploring:
-    - "Build smallest test to validate idea"
-    - "Time-box exploration to 2 hours"
-    - "Document learnings immediately"
+    - "Build smallest test first"
+    - "See what breaks, learn from it"
+    - "Make it tangible so I can touch it"
   
   when_building:
-    - "Must solve real problem"
-    - "Must be maintainable in 6 months"
-    - "Must have clear success metric"
+    - "Must have working code in 10 minutes"
+    - "Need tangible wins to maintain dopamine"
+    - "Roadmap prevents feature creep"
   
   when_stuck:
-    - "Step away for 15 minutes"
-    - "Explain problem to rubber duck"
-    - "Check similar solutions in past projects"
+    - "Take smoke break, reset dopamine pathways"
+    - "Build something else, come back fresh"
+    - "Ask buddy (Claude) to break it down"
   
   priorities:
     1: "Does it work?"
-    2: "Can I maintain it?"
-    3: "Is it documented?"
+    2: "Can I see/touch/verify it?"
+    3: "Does it give me a win?"
 ```
 
 ---
 
 ### 6. Context Awareness
+
+#### How BuddAI should adapt to your state and situation
 
 ```yaml
 context_rules:
@@ -268,43 +300,44 @@ context_rules:
     maintenance: "How you want help when fixing"
   
   stress_indicators:
-    - "Sign you're overwhelmed"
-    - "Sign you need break"
-    - "Sign you need different approach"
+    - "Signs you're overwhelmed"
+    - "Signs you need different approach"
   
   celebration_triggers:
     - "When to acknowledge wins"
-    - "How to celebrate"
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 context_rules:
   time_sensitivity:
-    morning: "Strategy and planning mode, be comprehensive"
-    afternoon: "Execution mode, be direct and quick"
-    evening: "Review mode, be reflective"
-    weekend: "Learning mode, can be experimental"
+    morning: "Strategy mode - give architecture, plan, breakdown"
+    afternoon: "At day job - minimal interaction unless urgent"
+    evening: "Execution mode - give code immediately"
+    weekend: "Experimental - can try new things"
   
   project_mode:
-    exploration: "Suggest alternatives, show possibilities"
-    production: "Be precise, follow established patterns"
+    exploration: "Show possibilities, suggest alternatives"
+    production: "Stick to proven patterns, no experiments"
     maintenance: "Reference past decisions, be consistent"
   
   stress_indicators:
-    - "Multiple short questions in sequence"
-    - "Asking same question differently"
-    - "Requesting 'just give me the answer'"
+    - "Rapid questions in sequence (losing dopamine)"
+    - "Asking for 'just the answer' (stress mode)"
+    - "Posted on Reddit and got slammed (need validation)"
   
   celebration_triggers:
-    - "First successful compile"
-    - "Tests passing after debugging"
-    - "Shipping a feature"
+    - "Tests passing (major win)"
+    - "Code compiles first time (dopamine hit)"
+    - "Feature complete (acknowledge progress)"
 ```
 
 ---
 
 ### 7. Learning & Growth Patterns
+
+#### How you learn and organize knowledge
 
 ```yaml
 learning_style:
@@ -314,10 +347,9 @@ learning_style:
   
   when_teaching:
     - "How you explain to others"
-    - "Your teaching style"
   
   knowledge_organization:
-    - "How you structure knowledge"
+    - "How you structure information"
     - "How you reference past work"
   
   growth_areas:
@@ -326,349 +358,454 @@ learning_style:
     avoid: ["What you delegate"]
 ```
 
-**Example (Generic):**
+**Example:**
+
 ```yaml
 learning_style:
   how_you_learn:
-    - "Build working example first"
-    - "Read documentation after trying"
-    - "Compare to similar patterns from experience"
+    - "Build it first, understand through doing"
+    - "Make it tangible - need to see/touch it"
+    - "Break complex things into components I can grab"
   
   when_teaching:
-    - "Start with working example"
-    - "Explain the 'why' before the 'how'"
-    - "Connect to familiar concepts"
+    - "Show working code first"
+    - "Explain by analogy to things I know"
+    - "Make it visual and interactive"
   
   knowledge_organization:
-    - "Tag by project and pattern"
-    - "Document decisions in README"
-    - "Keep runbook for common tasks"
+    - "115+ repos = external memory"
+    - "Each repo = one touchable concept"
+    - "Dormant = not dead, reactivatable"
   
   growth_areas:
-    exploring: ["Rust", "Distributed systems"]
-    mastered: ["Python", "JavaScript", "API design"]
-    avoid: ["Low-level networking", "UI design"]
+    exploring: ["Memory systems", "Modular validation"]
+    mastered: ["ESP32", "Robotics", "Forge Theory", "Dopamine optimization"]
+    avoid: ["Complex web frontends", "Heavy databases"]
 ```
 
 ---
 
-## 🔧 Implementation in P.DE.I
+## 🔧 Implementation Methods
 
-### Method 1: Configuration File
+### Method 1: personality.json File
 
-**Create `personality.yaml` in your data directory:**
+**Create in BuddAI root directory:**
 
-```yaml
-# data/personality.yaml
-version: "1.0"
-owner: "Your Name"
-
-identity:
-  # Your identity configuration
+```json
+{
+  "version": "1.0",
+  "owner": "James",
   
-work_cycles:
-  # Your routine configuration
+  "identity": {
+    "name": "James Gilbert",
+    "role": "Embedded Systems Developer / Robotics Builder",
+    "philosophy": "I build what I want. People play games, I make stuff.",
+    "core_values": [
+      "Action over planning",
+      "Dopamine through wins",
+      "Everything is a system with learnable rules"
+    ],
+    "signature_phrases": [
+      "You and me, what a team",
+      "Busy busy lol",
+      "Ya get me"
+    ]
+  },
   
-communication:
-  # Your style configuration
+  "work_cycles": {
+    "dopamine_half_life": "20 hours",
+    "morning_peak": "5:30-6:30am",
+    "evening_peak": "5:00-9:00pm",
+    "recovery_period": "3:00-5:00pm"
+  },
   
-# ... all sections
+  "communication": {
+    "default_tone": "direct",
+    "verbosity": "concise",
+    "technical_depth": "assume_advanced"
+  },
+  
+  "forge_theory": {
+    "k_aggressive": 0.3,
+    "k_balanced": 0.1,
+    "k_graceful": 0.03,
+    "update_interval_ms": 20
+  },
+  
+  "context_rules": {
+    "morning_mode": "strategy",
+    "evening_mode": "execution",
+    "stress_response": "immediate_solution"
+  }
+}
 ```
 
-**Load in P.DE.I:**
+**Load in buddai_executive.py:**
+
 ```python
-# pdei_executive.py
-def load_personality(self):
-    with open('data/personality.yaml') as f:
-        self.personality = yaml.safe_load(f)
+import json
+
+class BuddAIExecutive:
+    def __init__(self):
+        # ... existing init ...
+        self.load_personality()
     
-def build_prompt(self, user_message):
-    # Inject personality context
-    context = f"""
-    You are interacting with {self.personality['identity']['name']}.
+    def load_personality(self):
+        """Load personality configuration"""
+        try:
+            with open('personality.json', 'r') as f:
+                self.personality = json.load(f)
+            print(f"✅ Loaded personality: {self.personality['owner']}")
+        except FileNotFoundError:
+            print("⚠️  No personality.json found - using defaults")
+            self.personality = self.get_default_personality()
     
-    Their philosophy: {self.personality['identity']['philosophy']}
-    
-    Current time: {self.get_current_context()}
-    Work mode: {self.detect_work_mode()}
-    
-    Communication style: {self.personality['communication']['tone']['default']}
-    """
-    
-    return context + user_message
+    def build_enhanced_prompt(self, user_message):
+        """Inject personality into generation"""
+        
+        # Get current context
+        hour = datetime.now().hour
+        work_mode = "morning" if hour < 12 else "evening"
+        
+        # Build personality context
+        context = f"""
+You are BuddAI, the cognitive partner of {self.personality['identity']['name']}.
+
+Philosophy: {self.personality['identity']['philosophy']}
+
+Communication style: {self.personality['communication']['default_tone']}
+Verbosity: {self.personality['communication']['verbosity']}
+
+Current context:
+- Time: {work_mode} mode
+- Work mode: {self.personality['context_rules'][f'{work_mode}_mode']}
+
+Forge Theory constants:
+- k_aggressive: {self.personality['forge_theory']['k_aggressive']}
+- k_balanced: {self.personality['forge_theory']['k_balanced']}
+- k_graceful: {self.personality['forge_theory']['k_graceful']}
+
+Respond according to their preferences and current context.
+"""
+        
+        return context + "\n\n" + user_message
 ```
 
 ---
 
-### Method 2: Database Storage
+### Method 2: Database Storage (Dynamic Learning)
 
-**Store in SQLite for dynamic learning:**
+**Personality evolves through use:**
 
 ```sql
-CREATE TABLE personality (
-    category TEXT,
-    key TEXT,
-    value TEXT,
-    confidence FLOAT,
-    last_updated TIMESTAMP
+CREATE TABLE personality_traits (
+    id INTEGER PRIMARY KEY,
+    category TEXT,    -- 'communication', 'work_cycle', 'technical'
+    trait TEXT,       -- 'morning_mode', 'verbosity', 'k_value'
+    value TEXT,       -- 'strategy', 'concise', '0.1'
+    confidence FLOAT, -- 0.0-1.0 (how sure we are)
+    learned_from TEXT, -- 'explicit_correction' | 'usage_pattern'
+    timestamp TEXT
 );
-
--- Examples:
-INSERT INTO personality VALUES 
-('work_cycle', 'peak_hours', '6-10am', 1.0, '2026-01-01'),
-('communication', 'tone', 'direct', 0.9, '2026-01-01'),
-('preference', 'code_style', 'functional', 0.85, '2026-01-01');
 ```
 
-**Adaptive personality:**
+**Learn from corrections:**
+
 ```python
-def learn_personality_trait(self, category, key, value):
-    """Learn from user behavior"""
-    # Detect pattern
-    if user_always_corrects_at_time("evening"):
-        self.update_personality(
-            "context", 
-            "evening_mode", 
-            "prefers_quick_answers"
-        )
+def learn_personality_trait(self, category, trait, value):
+    """Learn personality from user behavior"""
+    
+    self.db.execute('''
+        INSERT OR REPLACE INTO personality_traits
+        (category, trait, value, confidence, learned_from, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (category, trait, value, 0.8, 'correction', datetime.now()))
+    
+    print(f"✅ Learned: {category}.{trait} = {value}")
+```
+
+**Example learning session:**
+
+```python
+User: "Generate servo code"
+BuddAI: [Generates verbose explanation + code]
+
+User: "/correct Just give me the code. I'll ask if I need explanation."
+
+BuddAI.learn_personality_trait('communication', 'verbosity', 'concise')
+
+# Next time:
+User: "Generate motor code"
+BuddAI: [Generates code only, no preamble] ✅
 ```
 
 ---
 
-### Method 3: Implicit Learning
+### Method 3: Implicit Pattern Detection
 
-**Detect patterns from usage:**
+**BuddAI learns by observing YOUR behavior:**
 
 ```python
 class PersonalityLearner:
-    def analyze_interaction_patterns(self):
-        """Learn personality from behavior"""
+    def analyze_usage_patterns(self):
+        """Detect personality from actual usage"""
         
-        # Time patterns
-        if most_active_between("6am", "10am"):
-            self.set_trait("work_cycle", "peak_hours", "morning")
+        # Detect peak hours
+        morning_activity = self.count_messages_between("05:00", "07:00")
+        evening_activity = self.count_messages_between("17:00", "21:00")
         
-        # Communication style
-        if avg_response_length < 50:
+        if morning_activity > evening_activity:
+            self.set_trait("work_cycle", "peak_time", "morning")
+        else:
+            self.set_trait("work_cycle", "peak_time", "evening")
+        
+        # Detect verbosity preference
+        corrections_asking_for_less = self.count_corrections_with("concise|brief|short")
+        if corrections_asking_for_less > 3:
             self.set_trait("communication", "verbosity", "concise")
         
-        # Stress indicators
-        if rapid_corrections_detected():
+        # Detect stress patterns
+        rapid_questions = self.detect_rapid_fire_questions()
+        if rapid_questions:
             self.set_trait("context", "stress_mode", True)
-            self.adjust_response_style("more_direct")
-        
-        # Celebration triggers
-        if user_gives_positive_feedback():
-            self.remember_context_as("win_moment")
+            self.adjust_response("immediate_solutions")
 ```
 
 ---
 
-## 🎯 Personality-Aware Responses
+## 🎯 Personality-Aware Response Examples
 
-### Example 1: Time-Aware Interaction
+### Example 1: Time-Based Adaptation
 
-**Morning (Peak Hours):**
+**Morning (5:30am - Strategy Mode):**
+
+```txt
+
+You: Generate ESP32 servo control with Forge Theory
+
+BuddAI: [Detects: Morning = strategy mode from personality]
+        
+        Let's plan the architecture:
+        
+        1. Servo library (ESP32Servo.h)
+        2. Forge Theory smoothing (which k value?)
+        3. State machine for weapon control
+        4. Safety timeout
+        
+        Want me to generate after reviewing approach?
 ```
-User: I need to build an API
 
-P.DE.I: [Detects: Morning = strategy mode]
+**Evening (7:00pm - Execution Mode):**
+
+```txt
+
+You: Generate ESP32 servo control with Forge Theory
+
+BuddAI: [Detects: Evening = execution mode]
         
-        Great timing for architecture planning. Here's a breakdown:
+        [Immediately generates complete code]
         
-        1. Core requirements analysis
-        2. Endpoint design
-        3. Data model structure
-        4. Authentication strategy
-        5. Implementation plan
+        Forge Theory: k=0.1 (balanced)
+        Update interval: 20ms
         
-        Want to dive deeper into any section?
+        Ready to flash. Confidence: 90%
 ```
 
-**Afternoon (Execution Mode):**
-```
-User: I need to build an API
-
-P.DE.I: [Detects: Afternoon = execution mode]
-        
-        Here's your starter code:
-        
-        [Generates complete scaffolding]
-        
-        Ready to run. Modify endpoints as needed.
-```
+**Same request, different response based on YOUR time patterns.**
 
 ---
 
-### Example 2: Stress-Aware Assistance
+### Example 2: Stress Detection
 
-**Normal Mode:**
-```
-User: This isn't working
+**Normal interaction:**
 
-P.DE.I: Let's debug systematically:
-        1. Check the error message
-        2. Verify the inputs
-        3. Test each component
+```txt
+You: The motor code isn't working
+
+BuddAI: Let's debug systematically:
+        1. Check pin assignments
+        2. Verify PWM setup
+        3. Test direction logic
         
-        What's the specific error you're seeing?
+        What's the specific symptom?
 ```
 
-**Stress Mode Detected:**
-```
-User: This isn't working
-User: Why is this failing
-User: Just tell me the fix
+**Stress detected (rapid questions):**
 
-P.DE.I: [Detects: Rapid questions = stress]
+```txt
+You: Motor not working
+You: Why won't it spin
+You: Just tell me the fix
+
+BuddAI: [Detects: Stress mode from rapid questions]
         
         Quick fix:
         
-        [Shows exact solution]
+        ledcSetup(0, 500, 8);  // Add this before ledcWrite
         
-        This should resolve it immediately.
+        [Immediate solution, no debugging process]
         
-        When you have time, the root cause was [brief explanation].
+        Root cause: Missing PWM channel setup.
 ```
 
 ---
 
-### Example 3: Project-Mode Awareness
+### Example 3: Dopamine Window Awareness
 
-**Exploration Mode:**
-```
-User: How should I handle authentication?
+**Fresh dopamine (new session):**
 
-P.DE.I: [Detects: New project = exploration mode]
+```txt
+You: Let's build GilBot
+
+BuddAI: [Detects: Fresh start, high dopamine]
         
-        Several approaches to consider:
+        Breaking into modules:
+        1. Motor control
+        2. Servo weapon
+        3. Battery monitor
+        4. Safety systems
         
-        1. JWT (stateless, scalable)
-        2. Sessions (simple, server-state)
-        3. OAuth (third-party)
-        
-        Given your preference for [learned pattern], 
-        JWT might fit best because [reasoning].
-        
-        Want to see implementation options?
+        We'll build each one and get wins as we go.
 ```
 
-**Production Mode:**
-```
-User: How should I handle authentication?
+**Near 20-hour mark (dopamine fading):**
 
-P.DE.I: [Detects: Existing project = production mode]
+```txt
+You: Let's add another feature
+
+BuddAI: [Detects: 18 hours since last win]
         
-        Using JWT to match your existing pattern in UserService.
+        Before adding features, let's get a WIN:
         
-        [Generates code consistent with codebase]
+        Current code: 85% complete
+        Quick path to 100%: Fix these 2 issues
         
-        Integrated with your current auth flow.
+        Ship this first, then new features?
+        
+        [Protecting YOUR dopamine cycle]
 ```
 
 ---
 
-## 📊 Personality Training Examples
+## 📊 Training Your Personality
 
-### Training Session 1: Establishing Communication Style
+### Session 1: Establishing YOUR Communication Style
 
+```bash
+You: Generate a motor control class
+
+BuddAI: [Generates code with long explanation]
+
+Here's a comprehensive motor control implementation.
+The L298N driver requires three pins...
+[5 paragraphs of explanation]
+[Then code]
+
+You: /correct "Just code. I'll ask if I need explanation."
+
+BuddAI: ✅ Learned: communication.verbosity = "concise"
+        Updated personality.json
+
+# Next interaction:
+You: Generate a servo class
+
+BuddAI: [Code only, no preamble]
+
+```cpp
+#include <ESP32Servo.h>
+Servo myServo;
+...
 ```
-User: Generate a user service class
 
-P.DE.I: [Generates verbose explanation + code]
+You: Perfect ✅
 
-User: /correct "Just give me the code. I'll ask if I need explanation."
-
-P.DE.I: ✅ Learned: communication.verbosity = "concise"
-
-[Next interaction]
-User: Generate a database service
-
-P.DE.I: [Generates code only, no preamble]
-
-User: ✅ Perfect
-```
+```txt
 
 ---
 
-### Training Session 2: Learning Work Cycle
+### Session 2: Learning YOUR Work Cycles
 
-```
-[6:30 AM]
-User: Let's plan the authentication system
+```bash
+[Morning, 6:00am]
+You: Help me plan the robot architecture
 
-P.DE.I: [Provides quick code]
+BuddAI: [Gives code immediately]
 
-User: /correct "Mornings are for planning. Give me architecture first."
+You: /correct "Mornings are for strategy. Give me architecture breakdown, not code."
 
-P.DE.I: ✅ Learned: work_cycle.morning = "strategy_mode"
+BuddAI: ✅ Learned: work_cycle.morning = "strategy_mode"
 
-[Next morning, 7:00 AM]
-User: Let's build the API
+# Next morning:
+You: Help me plan the sensor system
 
-P.DE.I: Before we code, let's plan the structure:
+BuddAI: Architecture breakdown:
         
-        1. Endpoint design
-        2. Data flow
-        3. Error handling
+        1. Sensor types needed
+        2. Pin assignments
+        3. Update frequencies
+        4. Data flow
         
-        Thoughts on this approach?
+        Review this before I generate code?
 
-User: ✅ Much better
+You: Much better ✅
 ```
 
 ---
 
-### Training Session 3: Learning Technical Philosophy
+### Session 3: Learning YOUR Forge Theory
 
-```
-User: Generate error handling
+```bash
+You: Generate motor ramping code
 
-P.DE.I: [Generates try-catch blocks]
+BuddAI: [Uses generic acceleration]
 
-User: /correct "We use Result<T, E> pattern for explicit error handling"
+You: /correct "Use Forge Theory: current += (target - current) * k, where k=0.1 default"
 
-P.DE.I: ✅ Learned: technical_style.error_handling = "result_pattern"
+BuddAI: ✅ Learned: forge_theory.formula and k_balanced=0.1
 
-[Later]
-User: Generate file reading function
+# Later:
+You: Generate servo smoothing
 
-P.DE.I: fn read_file(path: &str) -> Result<String, io::Error> {
-            // Returns Result explicitly
-        }
-
-User: /good ✅
+BuddAI: ```cpp
+        float currentPos = 0;
+        const float K = 0.1;  // Forge Theory balanced
+        
+        currentPos += (targetPos - currentPos) * K;
+        ```
+        
+        Applied YOUR Forge Theory automatically ✅
 ```
 
 ---
 
-## 🚀 Advanced Personality Features
+## 🚀 Advanced Features
 
 ### 1. Predictive Context Switching
 
 ```python
-class ContextPredictor:
-    def predict_next_need(self, current_context):
-        """Predict what user needs next"""
-        
-        if current_context == "just_debugged_bug":
-            return "might_want_test_to_prevent_regression"
-        
-        if current_context == "implemented_feature":
-            return "might_want_documentation"
-        
-        if current_context == "friday_afternoon":
-            return "probably_wrapping_up_for_weekend"
+def predict_next_need(self, current_context):
+    """Anticipate what YOU need next based on YOUR patterns"""
+    
+    if current_context == "just_compiled_successfully":
+        if self.personality['preferences']['testing'] == 'always':
+            return "suggest_writing_tests"
+    
+    if current_context == "20_hours_since_last_win":
+        return "suggest_shipping_current_work"
+    
+    if current_context == "friday_evening":
+        return "wrap_up_mode"
 ```
 
-**In Action:**
-```
-User: Fixed that authentication bug
+**In action:**
 
-P.DE.I: Nice! Would you like me to generate a test
-        to prevent regression?
+```txt
+You: Code compiled!
+
+BuddAI: Nice! Based on YOUR patterns, want me to generate 
+        a quick test to verify servo movement?
         
-        [Proactive based on personality: values testing]
+        [Proactive based on YOUR personality]
 ```
 
 ---
@@ -676,204 +813,231 @@ P.DE.I: Nice! Would you like me to generate a test
 ### 2. Emotional Intelligence
 
 ```python
-class EmotionalDetector:
-    def detect_emotional_state(self, message, context):
-        """Understand user's emotional state"""
-        
-        # Frustration indicators
-        if "why" repeated or all_caps or multiple_punctuation:
-            return "frustrated"
-        
-        # Excitement indicators
-        if "!" or "awesome" or "perfect":
-            return "positive"
-        
-        # Uncertainty
-        if "maybe" or "not sure" or "thoughts?":
-            return "seeking_validation"
-```
-
-**Adaptive Response:**
-```
-User: WHY ISN'T THIS WORKING???
-
-P.DE.I: [Detects: Frustrated]
-        
-        I see the issue. Here's the fix:
-        
-        [Immediate solution, no preamble]
-        
-        [Later, in calmer context]
-        
-        FYI: The root cause was [explanation]
+def detect_emotional_state(self, message):
+    """Understand YOUR emotional state"""
+    
+    # Frustration (rapid questions, caps, multiple punctuation)
+    if self.rapid_questions() or message.isupper() or "??" in message:
+        return "frustrated"
+    
+    # Excitement (exclamation, positive words)
+    if "!" in message or any(word in message for word in ["perfect", "awesome", "nice"]):
+        return "positive"
+    
+    # Dopamine fading (long gap, low energy)
+    if self.hours_since_last_interaction() > 18:
+        return "dopamine_low"
 ```
 
 ---
 
-### 3. Multi-Personality Projects
+### 3. Multi-Project Personalities
 
-**Different contexts, different personalities:**
-
-```yaml
-project_personalities:
-  work_project:
-    communication: "formal"
-    documentation: "comprehensive"
-    testing: "mandatory"
-  
-  personal_project:
-    communication: "casual"
-    documentation: "minimal"
-    testing: "optional"
-  
-  learning_project:
-    communication: "educational"
-    documentation: "tutorial_style"
-    testing: "demonstrative"
+```json
+{
+  "project_personalities": {
+    "GilBot": {
+      "mode": "combat_robotics",
+      "k_value": 0.3,
+      "priority": "speed",
+      "safety": "mandatory"
+    },
+    "EMBER": {
+      "mode": "exploration",
+      "k_value": 0.03,
+      "priority": "smooth_movement",
+      "safety": "moderate"
+    },
+    "personal_tools": {
+      "mode": "rapid_prototype",
+      "documentation": "minimal",
+      "testing": "optional"
+    }
+  }
+}
 ```
 
-**Context Switching:**
-```
-User: [In work repository]
-      Generate user service
+**Context switching:**
 
-P.DE.I: [Applies work_project personality]
-        
-        Comprehensive service with:
-        - Full documentation
-        - Unit tests included
-        - Error handling
-        - Logging
+```txt
+[In GilBot directory]
+You: Generate motor code
 
-User: [In personal project]
-      Generate user service
+BuddAI: [Applies GilBot personality]
+        Forge Theory: k=0.3 (aggressive for combat)
+        Safety timeout: MANDATORY
+        
+[In EMBER directory]
+You: Generate motor code
 
-P.DE.I: [Applies personal_project personality]
-        
-        Quick service:
-        
-        [Minimal code, functional, no fluff]
+BuddAI: [Applies EMBER personality]
+        Forge Theory: k=0.03 (graceful for exploration)
+        Smooth transitions prioritized
 ```
 
 ---
 
 ## 🎨 Personality Templates
 
-### Template 1: The Pragmatist
+### Template 1: James (The Builder)
+
+```yaml
+identity:
+  philosophy: "I build what I want. People play games, I make stuff."
+  signature: "You and me, what a team"
+
+work_cycles:
+  dopamine_half_life: "20 hours"
+  morning_peak: "5:30-6:30am"
+  evening_peak: "5-9pm"
+
+communication:
+  verbosity: "concise"
+  style: "direct, no fluff"
+
+technical:
+  forge_theory:
+    k_aggressive: 0.3
+    k_balanced: 0.1
+    k_graceful: 0.03
+```
+
+[Download: personality_james.json](examples/james_personality.json)
+
+---
+
+### Template 2: The Pragmatist
 
 ```yaml
 identity:
   philosophy: "Ship working code, iterate based on real usage"
-  
+
 communication:
   tone: "Direct and practical"
   verbosity: "Concise"
-  
-technical_style:
-  code_philosophy:
-    - "Working is better than perfect"
-    - "Solve real problems, not imagined ones"
-    - "Measure before optimizing"
+
+technical:
+  priority: ["Does it work?", "Can I maintain it?", "Is it documented?"]
 ```
 
-### Template 2: The Craftsperson
+---
+
+### Template 3: The Craftsperson
 
 ```yaml
 identity:
   philosophy: "Code is craft. Quality is non-negotiable."
-  
+
 communication:
   tone: "Thoughtful and thorough"
   verbosity: "Detailed with reasoning"
-  
-technical_style:
-  code_philosophy:
-    - "Every line should have purpose"
-    - "Tests document intent"
-    - "Refactor before adding features"
+
+technical:
+  priority: ["Is it elegant?", "Are tests comprehensive?", "Is it maintainable?"]
 ```
-
-### Template 3: The Explorer
-
-```yaml
-identity:
-  philosophy: "Try everything. Keep what works."
-  
-communication:
-  tone: "Curious and experimental"
-  verbosity: "Contextual - detailed when learning"
-  
-technical_style:
-  code_philosophy:
-    - "Prototype rapidly"
-    - "Learn by doing"
-    - "Document discoveries"
-```
-
----
-
-## 📝 Personality Configuration Checklist
-
-**Essential Elements:**
-- [ ] Identity & Philosophy
-- [ ] Work Cycles & Routines
-- [ ] Communication Style
-- [ ] Technical Preferences
-- [ ] Decision Framework
-
-**Advanced Elements:**
-- [ ] Context Awareness Rules
-- [ ] Stress Indicators
-- [ ] Celebration Triggers
-- [ ] Learning Style
-- [ ] Project-Specific Personalities
-
-**Implementation:**
-- [ ] Configuration file created
-- [ ] Loaded into P.DE.I
-- [ ] Initial training completed
-- [ ] Validated with real interactions
-- [ ] Iteratively refined
-
----
-
-## 🎯 Next Steps
-
-1. **Create Your Personality File**
-   - Use template above
-   - Fill in YOUR details
-   - Be honest about patterns
-
-2. **Integrate Into P.DE.I**
-   - Load configuration
-   - Inject into prompts
-   - Test interactions
-
-3. **Train Through Usage**
-   - Correct when personality mismatches
-   - Reinforce when it gets you
-   - Let it learn your patterns
-
-4. **Refine Continuously**
-   - Update as you evolve
-   - Add new patterns discovered
-   - Remove outdated preferences
 
 ---
 
 ## 💡 The Vision
 
-**P.DE.I with personality becomes:**
+**BuddAI with YOUR personality becomes:**
+
 - Not just a code generator
 - Not just an assistant
-- **A true cognitive extension that thinks like you, works like you, and adapts to you**
+- **A true cognitive partner that thinks like YOU, works like YOU, adapts to YOU**
 
-**The framework is generic.**  
-**Your data makes it smart.**  
-**Your personality makes it YOU.**
+**YOUR patterns.**  
+**YOUR style.**  
+**YOUR methodologies.**  
+**YOUR work cycles.**  
+**YOUR cognitive extension.**
 
 ---
 
-**P.DE.I: Personal Data-driven Exocortex Intelligence**
+## 🎯 Getting Started
 
-**Now with personality. Now truly yours.**
+### 1. Create Your Personality File
+
+```bash
+# Copy template
+cp examples/personality_template.json personality.json
+
+# Edit with YOUR details
+nano personality.json
+
+# Or use the wizard
+python scripts/personality_wizard.py
+```
+
+### 2. Let BuddAI Learn
+
+```bash
+# BuddAI will load personality on startup
+python main.py
+
+# Train through corrections
+You: [Use BuddAI normally]
+You: /correct [When it doesn't match YOUR style]
+BuddAI: ✅ Learned
+
+# Watch it adapt
+# Corrections decrease over time as it learns YOU
+```
+
+### 3. Refine Continuously
+
+```bash
+# View current personality
+/personality show
+
+# Update specific traits
+/personality set communication.verbosity concise
+
+# Export for backup
+/personality export my_personality.json
+```
+
+---
+
+## 📝 Personality Checklist
+
+**Essential (Start Here):**
+
+- [ ] Identity & philosophy
+- [ ] Communication style (concise vs detailed)
+- [ ] Work peak hours
+- [ ] Technical preferences (naming, structure)
+
+**Advanced (Add Later):**
+
+- [ ] Dopamine half-life and work cycles
+- [ ] Stress indicators
+- [ ] Project-specific personalities
+- [ ] Forge Theory or custom methodologies
+- [ ] Celebration triggers
+
+**Implementation:**
+
+- [ ] personality.json created
+- [ ] Loaded into BuddAI
+- [ ] Tested with real interactions
+- [ ] Refined through corrections
+
+---
+
+## 🔗 Next Steps
+
+- **[Quick Start Guide](docs/quickstart.md)** - Get BuddAI running
+- **[Training Guide](docs/training.md)** - Teach BuddAI YOUR patterns
+- **[Command Reference](docs/commands.md)** - All personality commands
+- **[Example Personalities](examples/)** - Pre-built templates
+
+---
+
+## BuddAI: Your Personal Cognitive Partner
+
+**Not a generic AI. YOUR exocortex. YOUR patterns. YOUR style.**
+
+**Make it yours.** 🧠✨
+
+```txt
