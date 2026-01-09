@@ -1,0 +1,25 @@
+BuddAI Test Report
+Date: 2026-01-09_22-13-54
+============================================================
+
+...................................................................................................................................................................E......................
+======================================================================
+ERROR: tests.test_scorer_live (unittest.loader._FailedTest.tests.test_scorer_live)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: tests.test_scorer_live
+Traceback (most recent call last):
+  File "C:\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "C:\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_scorer_live.py", line 7, in <module>
+    from pattern_scorer import get_db_connection  # Import the missing function
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'get_db_connection' from 'pattern_scorer' (C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\pattern_scorer.py)
+
+
+----------------------------------------------------------------------
+Ran 186 tests in 51.244s
+
+FAILED (errors=1)

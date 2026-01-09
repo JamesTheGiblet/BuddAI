@@ -1,0 +1,24 @@
+BuddAI Test Report
+Date: 2026-01-09_22-07-38
+============================================================
+
+...................................................................................................................................................................E......................
+======================================================================
+ERROR: tests.test_scorer_live (unittest.loader._FailedTest.tests.test_scorer_live)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: tests.test_scorer_live
+Traceback (most recent call last):
+  File "C:\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "C:\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_scorer_live.py", line 5, in <module>
+    from buddai_shared import get_db_connection
+ModuleNotFoundError: No module named 'buddai_shared'
+
+
+----------------------------------------------------------------------
+Ran 186 tests in 51.566s
+
+FAILED (errors=1)

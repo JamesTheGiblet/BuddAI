@@ -1,0 +1,19 @@
+BuddAI Test Report
+Date: 2026-01-09_18-25-15
+============================================================
+
+.............................................................................................................................................................F............
+======================================================================
+FAIL: test_registry_loading (tests.test_skills.TestSkills.test_registry_loading)
+Ensure skills are discovered and loaded
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_skills.py", line 24, in test_registry_loading
+    self.assertIn("test_all", self.registry)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'test_all' not found in {'base64_tool': {'name': 'Base64 Tool', 'triggers': ['base64'], 'description': 'Encode or decode Base64 strings', 'run': <function run at 0x00000190220FE340>}, 'calculator': {'name': 'Smart Calculator', 'triggers': ['calculate', 'compute', 'solve', 'math', '+', '-', '*', '/'], 'description': 'Performs basic arithmetic operations detected in the prompt.', 'run': <function run at 0x000001902226A480>}, 'color_tool': {'name': 'Color Converter', 'triggers': ['hex to rgb', 'rgb to hex', 'color convert'], 'description': 'Convert between Hex and RGB colors', 'run': <function run at 0x00000190220FE480>}, 'file_search_tool': {'name': 'File Search Tool', 'triggers': ['find file', 'search file', 'locate file'], 'description': 'Find files by name pattern in the current directory', 'run': <function run at 0x00000190220FE7A0>}, 'hash_tool': {'name': 'Hash Generator', 'triggers': ['hash', 'md5', 'sha256', 'sha1'], 'description': 'Generate MD5/SHA1/SHA256 hashes', 'run': <function run at 0x00000190220FE5C0>}, 'json_tool': {'name': 'JSON Formatter', 'triggers': ['format json', 'pretty json', 'validate json'], 'description': 'Validate and pretty-print JSON', 'run': <function run at 0x00000190220FE200>}, 'regex_tool': {'name': 'Regex Tester', 'triggers': ['regex test'], 'description': 'Test regex patterns against strings', 'run': <function run at 0x00000190220FE020>}, 'system_info': {'name': 'System Info', 'triggers': ['cpu usage', 'ram usage', 'memory usage', 'system stats', 'how much ram', 'cpu load'], 'description': 'Reports current CPU and RAM usage.', 'run': <function run at 0x000001902226A700>}, 'timer': {'name': 'Timer', 'triggers': ['timer', 'sleep', 'wait for'], 'description': 'Sets a non-blocking timer (background thread).', 'run': <function run at 0x000001902226A8E0>}, 'weather': {'name': 'Weather', 'triggers': ['weather', 'temperature', 'forecast'], 'description': 'Fetches current weather using wttr.in (no API key required).', 'run': <function run at 0x000001902226AAC0>}}
+
+----------------------------------------------------------------------
+Ran 170 tests in 53.956s
+
+FAILED (failures=1)

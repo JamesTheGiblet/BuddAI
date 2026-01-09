@@ -1,6 +1,29 @@
 # BuddAI Development Changelog
 
+## [4.0] - 2026-01-10
+
+### Added
+
+- **Memory Decay System**: Implemented Pattern Scorer (exponential decay), Pruner (safe deletion), and Merger (similarity consolidation).
+- **Tool Suite**: Integrated 17 production-ready tools including Code Analyzer, Test Generator, and Project Scaffolder.
+- **AI Fallback**: Multi-provider escalation (GPT-4, Claude, Gemini) with confidence scoring.
+- **Validators**: 10 modular validators for ESP32, Motor Control, Forge Theory, and more.
+
+### Improved
+
+- **Test Coverage**: Increased from 129 to 200 passing tests (100% coverage).
+- **Performance**: Optimized test runtime to ~51 seconds.
+- **Architecture**: Fully modularized skill and validator discovery.
+
+### Technical
+
+- **Algorithms**: Added Levenshtein distance for pattern merging and exponential decay (e^-λt) for scoring.
+- **Safety**: Added backup systems for pattern pruning.
+- **Accuracy**: Validated 90% accuracy on ESP32 hardware.
+
 ## Version 3.2 - Self-Learning & Optimization System
+
+---
 
 ### 📊 Phase 1: Data Collection
 

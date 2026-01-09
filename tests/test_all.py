@@ -1,57 +1,85 @@
 import unittest
+import io
 import sys
-import os
-from datetime import datetime
+from pathlib import Path
+import datetime
 
-def run_suite():
+def meta():
     """
-    Discover and run all tests in the tests/ directory.
+    Metadata for the Test Runner skill.
     """
-    # Get directories
-    tests_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(tests_dir)
-    reports_dir = os.path.join(tests_dir, "reports")
+    return {
+        "name": "Self-Diagnostic",
+        "description": "Runs the internal unit test suite (tests/*.py).",
+        "triggers": ["test all", "run tests", "self diagnostic", "check systems", "verify integrity"]
+    }
+
+def run(payload):
+    """
+    Discovers and runs tests in the tests/ directory.
+    """
+    # Root dir is parent of skills/ (i.e., buddAI/)
+    root_dir = Path(__file__).parent.parent
+    tests_dir = root_dir / "tests"
     
-    if not os.path.exists(reports_dir):
-        os.makedirs(reports_dir)
+    if not tests_dir.exists():
+        return "❌ Diagnostics failed: 'tests' directory not found."
+
+    # Capture output
+    log_capture = io.StringIO()
     
-    # Add project root to sys.path to allow imports of 'core', 'skills', etc.
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-        
-    # Discover tests
+    # Create a test runner that writes to our capture stream
+    runner = unittest.TextTestRunner(stream=log_capture, verbosity=2)
     loader = unittest.TestLoader()
-    suite = loader.discover(tests_dir, pattern="test_*.py", top_level_dir=project_root)
     
-    # Setup report file
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    report_path = os.path.join(reports_dir, f"test_report_{timestamp}.txt")
-    
-    print(f"🚀 Running tests... (Logging to {report_path})")
-    
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write(f"BuddAI Test Report\n")
-        f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write("="*60 + "\n\n")
+    try:
+        # Ensure root_dir is in sys.path so tests can import 'core', 'skills', etc.
+        if str(root_dir) not in sys.path:
+            sys.path.insert(0, str(root_dir))
+            
+        # Discover tests
+        suite = loader.discover(str(tests_dir), pattern="test_*.py", top_level_dir=str(root_dir))
         
+        num_tests = suite.countTestCases()
+        if num_tests == 0:
+            return "⚠️ No tests found in tests/ directory."
+            
         # Run tests
-        runner = unittest.TextTestRunner(stream=f, verbosity=2)
         result = runner.run(suite)
         
-        f.write("\n" + "="*60 + "\n")
-        f.write(f"SUMMARY:\n")
-        f.write(f"Ran: {result.testsRun} tests\n")
-        f.write(f"Failures: {len(result.failures)}\n")
-        f.write(f"Errors: {len(result.errors)}\n")
+        # Get output string
+        output = log_capture.getvalue()
         
-    if result.wasSuccessful():
-        print(f"✅ All {result.testsRun} tests passed!")
-    else:
-        print(f"❌ Tests failed! ({len(result.failures)} failures, {len(result.errors)} errors)")
-        print(f"📝 Check report: {report_path}")
-    
-    return result.wasSuccessful()
+        # Save report to file
+        reports_dir = tests_dir / "reports"
+        reports_dir.mkdir(exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        report_path = reports_dir / f"test_report_{timestamp}.txt"
+        
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(f"BuddAI Test Report\nDate: {timestamp}\n")
+            f.write("="*60 + "\n\n")
+            f.write(output)
+        
+        # Construct response
+        header = "✅ **All Systems Operational**" if result.wasSuccessful() else "❌ **System Failures Detected**"
+        stats = f"Executed {result.testsRun} tests."
+        
+        if not result.wasSuccessful():
+            stats += f"\n🔴 Failures: {len(result.failures)}"
+            stats += f"\n⚠️ Errors: {len(result.errors)}"
+            
+        stats += f"\n📄 Report saved: `{report_path.name}`"
+            
+        # Limit output length for chat
+        console_output = output
+        if len(console_output) > 1500:
+            console_output = "..." + console_output[-1500:]
+            
+        return f"{header}\n{stats}\n\n**Console Output:**\n```text\n{console_output}\n```"
+        
+    except Exception as e:
+        return f"❌ Execution Error: {str(e)}"
 
 if __name__ == "__main__":
-    success = run_suite()
-    sys.exit(0 if success else 1)
+    print(run(None))

@@ -1,0 +1,19 @@
+BuddAI Test Report
+Date: 2026-01-09_19-54-47
+============================================================
+
+..............................................................................................................................................................F..............
+======================================================================
+FAIL: test_doc_generator (tests.test_skills.TestSkills.test_doc_generator)
+Verify doc generator skill
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_skills.py", line 99, in test_doc_generator
+    self.assertIn("API Documentation", result)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'API Documentation' not found in '❌ Syntax Error: Code provided is not valid Python.'
+
+----------------------------------------------------------------------
+Ran 173 tests in 51.189s
+
+FAILED (failures=1)

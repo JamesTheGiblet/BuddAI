@@ -50,3 +50,4 @@ from .forge_theory import ForgeTheoryValidator
 from .timing_safety import TimingValidator
 from .arduino_compat import ArduinoValidator
 from .style_guide import StyleValidator
+from .security_validator import SecurityValidator

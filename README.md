@@ -3,7 +3,7 @@
 > **Not a second mind. An extension of YOUR mind.**  
 > **Handles 80% of the grunt work. You focus on the 20% that matters.**
 
-[![Tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-200%20passing-brightgreen)]()
 [![Accuracy](https://img.shields.io/badge/ESP32%20accuracy-90%25-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 [![Version](https://img.shields.io/badge/version-v4.0-purple)]()

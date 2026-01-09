@@ -32,6 +32,18 @@ def load_registry():
                     "run": module.run
                 }
                 logger.info(f"🧩 Skill Loaded: {metadata.get('name')} [{skill_id}]")
+            elif hasattr(module, "skill") and isinstance(module.skill, dict):
+                # Support for dictionary-based skill definition
+                metadata = module.skill
+                skill_id = name
+                
+                registry[skill_id] = {
+                    "name": metadata.get("name", skill_id),
+                    "triggers": metadata.get("triggers", []),
+                    "description": metadata.get("description", "No description provided."),
+                    "run": metadata.get("run", getattr(module, "run", None))
+                }
+                logger.info(f"🧩 Skill Loaded: {metadata.get('name')} [{skill_id}]")
             else:
                 logger.debug(f"Skipping {name}: Does not implement Skill Interface.")
                 
