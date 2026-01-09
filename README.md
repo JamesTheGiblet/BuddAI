@@ -1,75 +1,147 @@
 # BuddAI: Your Personal AI Exocortex
 
-> **Not a second mind. An extension of YOUR mind.**  
-> **Handles 80% of the grunt work. You focus on the 20% that matters.**
+> **A local code generator that remembers your corrections and gets better every time you use it.**
 
-[![Tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-129%20passing-brightgreen)]()
 [![Accuracy](https://img.shields.io/badge/ESP32%20accuracy-90%25-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 [![Version](https://img.shields.io/badge/version-v4.0-purple)]()
 
 ---
 
-## What This Actually Is
+## What BuddAI Can Do, and Why It Matters
 
-**BuddAI is YOUR cognitive partner.**
+BuddAI started as a simple idea: a local tool that remembers the corrections you teach it and applies those patterns to future code. No cloud training, no hype — just a system that improves the more you use it.
 
-Not a chatbot. Not an assistant. Not another AI wrapper.
+### What it can do today:
+- Generate embedded-systems code with around 90% accuracy on ESP32 (validated over 14 hours)
+- Store your corrections permanently and reuse them automatically
+- Apply hardware-specific validation rules to catch common mistakes
+- Improve its output every time you correct it (+40-60% per iteration in testing)
+- Run fully local with no data leaving your machine
 
-**It's an exocortex** - external working memory that learns YOUR patterns, YOUR style, YOUR methodologies.
+### Where it's heading:
+- Support for multiple boards (ESP32 family, Arduino, STM32, Pico)
+- Hundreds to thousands of learned patterns from real use
+- Expanded validators for protocols, sensors, safety, and domain-specific rules
+- Higher accuracy across more hardware as the pattern library grows
+- A system that becomes faster and more reliable the longer you work with it
 
-**The difference:**
+### Why this matters:
 
-- GitHub Copilot: Trained on everyone's code
-- **BuddAI: Trained on YOUR 8 years of IP**
+Most AI tools don't learn from you. They reset every session, forget your corrections, and generate generic output. BuddAI does the opposite — it keeps everything you teach it and builds on that knowledge over time.
 
-**The code is generic. The intelligence is in YOUR data.**
+The more you use it, the more it reflects your own approach, your hardware experience, and your problem-solving patterns. That compounding effect is where the real value comes from.
 
 ---
 
-## The 80/20 Split
+## Quick Start (10 Minutes)
 
-### Without BuddAI
-
-```
-Your brain: 100% capacity
-├─ 60%: Boilerplate, syntax, remembering patterns
-├─ 20%: Debugging stupid mistakes  
-└─ 20%: Actual creative problem-solving
+### 1. Install Ollama
+```bash
+# Download from https://ollama.com
+# One-click installer
 ```
 
-### With BuddAI
+### 2. Pull the Model
+```bash
+ollama serve  # Keep running in background
 
-```
-BuddAI handles 80%:
-├─ Boilerplate (YOUR patterns)
-├─ Common mistakes (YOUR errors caught)
-├─ Pattern application (YOUR style)
-└─ Safety validation (YOUR rules)
-
-YOU focus on 20%:
-├─ Novel algorithms
-├─ Architecture decisions
-├─ Creative solutions
-└─ Problems only YOU can solve
+# In new terminal:
+ollama pull qwen2.5-coder:3b    # ~2GB download
 ```
 
-**Result: 12x faster on routine tasks. 2 hours → 10 minutes.**
+### 3. Get BuddAI
+```bash
+git clone https://github.com/JamesTheGiblet/BuddAI
+cd BuddAI
+```
+
+### 4. Run It
+```bash
+# Terminal mode
+python buddai_executive.py
+
+# Or web interface (recommended)
+python buddai_server.py --server
+# Open http://localhost:8000/web
+```
+
+### 5. First Build
+```
+You: Generate ESP32-C3 motor driver with L298N
+
+BuddAI: [Generates complete code]
+        ✅ Pin definitions (auto-added)
+        ✅ Safety timeout (auto-added)
+        ✅ Your coding style applied
+```
+
+**That's it. You're running.**
+
+---
+
+## How It Actually Works
+
+### The Learning Loop
+
+**Example: Teaching BuddAI once saves forever**
+
+```
+Step 1: Generate code
+You: "Generate servo control"
+BuddAI: Uses analogWrite(pin, value);  // ❌ Wrong for ESP32
+
+Step 2: Correct it
+You: /correct ESP32 uses ledcWrite, not analogWrite
+BuddAI: ✅ Stored in database
+
+Step 3: Every future generation
+BuddAI: Uses ledcWrite(channel, value);  // ✅ Automatic
+```
+
+**That correction is permanent.** You taught it once. It applies forever.
+
+---
+
+### The Architecture (No Magic)
+
+```
+User Request
+    ↓
+Load recent corrections from SQLite
+    ↓
+Inject into prompt as context
+    ↓
+Call local LLM (Qwen 2.5 Coder)
+    ↓
+Validate with 8 hardware-specific validators
+    ↓
+Auto-fix common issues
+    ↓
+Return clean code
+```
+
+**Simple but effective:**
+- Database stores your corrections
+- Prompt engineering injects them as context
+- Validators catch hardware-specific mistakes
+- LLM generates code following YOUR patterns
 
 ---
 
 ## Proven Performance
 
-### 90% Accuracy (Tested & Validated)
+### 90% Accuracy (Validated)
 
-**14 hours of comprehensive testing:**
+14-hour comprehensive test across 10 questions:
 
 ```
 Q1:  PWM LED Control         98%  ⭐
 Q2:  Button Debouncing       95%  ⭐
 Q3:  Servo Control           89%  ✅
 Q4:  Motor Driver (L298N)    90%  ⭐
-Q5:  State Machine           90%  ⭐
+Q5:  State Machine           90%  ⭐ (30%→90% after teaching)
 Q6:  Battery Monitoring      90%  ⭐
 Q7:  LED Status Indicator    90%  ⭐
 Q8:  Forge Theory            90%  ⭐
@@ -79,117 +151,104 @@ Q10: Complete GilBot         85%  ⭐
 AVERAGE: 90% 🏆
 ```
 
-**Not theoretical. Actually tested. 10 questions, 100+ iterations, 14 hours.**
-
-Full results: [`VALIDATION_REPORT.md`](VALIDATION_REPORT.md)
+**Full validation report:** [VALIDATION_REPORT.md](VALIDATION_REPORT.md)
 
 ---
 
-## How It Actually Works
+### Time Savings (Measured)
 
-### Reactive Learning Loop
-
-**BuddAI doesn't "know everything" out of the box.**
-
-**It learns from YOU:**
-
+**Traditional development:**
 ```
-1. You: "Generate ESP32 servo code"
-
-2. BuddAI: [generates code]
-   analogWrite(5, 128);  // ❌ Wrong for ESP32
-
-3. You: [test, debug, fix]
-   ledcWrite(0, 128);    // ✅ Correct
-
-4. You: "/correct ESP32 uses ledcWrite, not analogWrite"
-
-5. BuddAI: ✅ Pattern learned and stored
-
-6. Next time: Generates ledcWrite automatically ✅
+Research:  30 min
+Code:      60 min
+Debug:     60 min
+Total:     150 min per module
 ```
 
-**Every correction makes it better. Proven +40-60% improvement per iteration.**
+**With BuddAI:**
+```
+Generate:  1 min
+Review:    10 min
+Fix:       10 min
+Test:      30 min
+Total:     51 min per module
+
+SAVINGS: 99 minutes (66% faster)
+```
+
+**GilBot project:** 30 hours manual → 8.7 hours with BuddAI (71% savings)
 
 ---
 
-## What Makes This Different
+## The 8 Validators
 
-### 1. YOUR Forge Theory (Encoded Forever)
+**What protects your code:**
 
-**Your 8 years of exponential decay physics, made interactive:**
+1. **ESP32 Hardware** - Catches `analogWrite()`, wrong ADC resolution (4095 not 1023)
+2. **Motor Control** - Prevents PWM conflicts, ensures L298N pins defined
+3. **Timing Safety** - Requires safety timeouts, prevents `delay()` in motor loops
+4. **Forge Theory** - Suggests exponential smoothing for fluid movement
+5. **Servo/Combat** - Enforces state machines for weapon systems
+6. **Arduino Compat** - Removes unnecessary includes, checks initialization
+7. **Memory Safety** - Removes unused variables
+8. **Style Guide** - Prevents feature bloat, enforces naming conventions
 
-```
-⚡ FORGE THEORY TUNING:
-1. Aggressive (k=0.3) - Combat robotics
-2. Balanced (k=0.1) - Standard control  
-3. Graceful (k=0.03) - Smooth curves
+**29 checks total. Every generation protected.**
 
-currentValue += (targetValue - currentValue) * k
+Full guide: [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md)
 
-Applied to: Servos, Motors, LEDs, Everything
-```
+---
 
-**Nobody else has this. It's YOUR methodology.**
+## Essential Commands
 
-### 2. Modular Decomposition
-
-**Sees systems like you do:**
-
-```
-You: "Build complete combat robot"
-
-BuddAI: 🎯 COMPLEX REQUEST DETECTED!
-        
-        Breaking into 5 modules:
-        📦 Servo weapon
-        📦 L298N drive
-        📦 Battery monitor
-        📦 Safety systems
-        📦 Integration
-        
-        [Generates each, then combines]
+```bash
+/correct <why>  # Teach BuddAI the right way
+/learn          # Extract patterns from corrections
+/good           # Mark response as correct
+/rules          # Show all learned patterns
+/validate       # Check generated code
+/metrics        # Show accuracy stats
 ```
 
-**This is how YOU think. Now automated.**
+### The Learning Loop
+```
+1. Generate code
+2. Review (usually 85-95% correct)
+3. If wrong: /correct <explanation>
+4. Run /learn to extract patterns
+5. Next generation: automatically improved
 
-### 3. Auto-Fix Engine
-
-```cpp
-// You ask: "Motor control"
-
-// BuddAI auto-adds:
-// [AUTO-FIX] Safety Timeout
-#define SAFETY_TIMEOUT 5000
-
-// [AUTO-FIX] L298N Pins  
-#define IN1 18
-#define IN2 19
-
-// [AUTO-FIX] State Machine
-enum State { DISARMED, ARMED, FIRING };
-
-⚠️ Auto-corrected:
-- Added safety timeout (combat requirement)
-- Added pin definitions
-- Added state machine
+Typical: 1-3 iterations to perfection
+Your effort: 5-15 min teaching
+Result: Permanent improvement
 ```
 
-**90% correct first time. Rest? Tells you exactly what to fix.**
+---
 
-### 4. The Validator System (Immune System)
+## Current Capabilities
 
-**BuddAI protects your hardware with 9 specialized validators:**
+### ✅ What Works NOW
 
-- **🛡️ Hardware Safety:** Enforces ESP32 specifics (12-bit ADC, `ledcWrite`).
-- **⚙️ Motor Control:** Prevents H-bridge shoot-through and ensures definitions.
-- **⏱️ Timing Safety:** Blocks blocking `delay()` calls in control loops.
-- **🌊 Forge Theory:** Verifies exponential smoothing application.
-- **⚔️ Combat Logic:** Mandates state machines for weapon systems.
+- ESP32-C3 firmware (90% accuracy)
+- Hardware-specific validation
+- Persistent correction database
+- Auto-fix for common errors
+- 100% local execution
+- Web + terminal interfaces
+- Remote access (Tailscale/Ngrok)
 
-Read the Validator Guide
+### ⚠️ Known Limitations
 
-### 5. 100% Local = Total Freedom
+- **Domain-specific:** Best for embedded systems (trained on ESP32)
+- **Requires training:** Fresh install starts at 60-70%, needs YOUR corrections
+- **Model constraints:** 3B parameter model (fast but limited)
+- **Session persistence:** Loads recent rules, not all patterns
+
+**Future improvements:** Load all patterns on startup, fine-tune on YOUR corrections
+
+---
+
+## Why Local Matters
 
 ```
 Cloud AI:           BuddAI:
@@ -204,372 +263,95 @@ Cloud AI:           BuddAI:
 
 ---
 
-## Quick Start (10 Minutes)
+## Honest Comparisons
 
-### 1. Install Ollama
+### vs GitHub Copilot
 
-```bash
-# Download from https://ollama.com
-# One-click installer
-```
+**Copilot wins:**
+- Better out-of-box (trained on billions of lines)
+- Faster (no local model)
+- IDE integration
 
-### 2. Pull Models
+**BuddAI wins:**
+- YOUR corrections persist forever
+- Hardware-specific validators
+- 100% local, 100% private
+- Learns YOUR patterns, not generic code
 
-```bash
-ollama serve  # Keep running in background
-
-# In new terminal:
-ollama pull qwen2.5-coder:3b    # Main model (~2GB)
-```
-
-### 3. Get BuddAI
-
-```bash
-git clone https://github.com/JamesTheGiblet/BuddAI
-cd BuddAI
-```
-
-### 4. Run It
-
-**Terminal mode:**
-
-```bash
-python buddai_executive.py
-```
-
-**Web interface (recommended):**
-
-```bash
-python buddai_server.py --server
-# Open http://localhost:8000/web
-```
-
-### 5. First Build
-
-```
-You: Generate ESP32-C3 motor driver with L298N
-
-BuddAI: [Generates complete code]
-        ✅ Pin definitions (auto-added)
-        ✅ Safety timeout (auto-added)
-        ✅ YOUR coding style applied
-        
-        Confidence: 90%
-```
-
-**That's it. You're running.**
+**Verdict:** Copilot for general coding. BuddAI for YOUR embedded domain after training.
 
 ---
 
-## Essential Commands
+### vs ChatGPT/Claude
 
-```bash
-/correct <why>  # Teach BuddAI the right way
-/learn          # Extract patterns from corrections
-/good           # Mark response as correct
-/rules          # Show 125+ learned rules
-/validate       # Check generated code
-/metrics        # Show accuracy stats
-/help           # All commands
-```
+**ChatGPT/Claude wins:**
+- Smarter base model
+- Broader knowledge
+- Better at novel problems
 
-### The Learning Loop
+**BuddAI wins:**
+- Remembers YOUR corrections forever
+- No monthly cost
+- Hardware validation built-in
+- Offline capable
 
-```
-1. Ask BuddAI to generate code
-2. Review (usually 85-95% correct)
-3. If wrong: /correct <explanation>
-4. Run /learn to extract patterns
-5. Ask again → 40-60% improvement
-6. Repeat until 90%+
-
-Typical: 1-3 iterations
-Your effort: 5-15 min teaching
-Result: Permanent improvement
-```
+**Verdict:** ChatGPT for new problems. BuddAI for repetitive work in YOUR domain.
 
 ---
 
-## Real Examples
+## The Compounding Effect
 
-### Simple (5 seconds)
-
+### Month 1
 ```
-You: What pins for L298N on ESP32-C3?
-
-BuddAI: L298N motor driver:
-        - IN1 (Direction): GPIO 18
-        - IN2 (Direction): GPIO 19
-        - ENA (Speed/PWM): GPIO 21
+Patterns: 244 → 330
+Boards: ESP32-C3
+Accuracy: 90%
 ```
 
-### Code Gen (20 seconds)
-
+### Month 3
 ```
-You: Generate motor driver with Forge Theory
-
-BuddAI: [Complete code with:]
-        ✅ L298N pins (auto)
-        ✅ Forge Theory (k=0.1)
-        ✅ Safety timeout (5s, auto)
-        ✅ YOUR style
-        
-        PROACTIVE: Apply smoothing?
+Patterns: 330 → 600
+Boards: ESP32-C3, Arduino, STM32
+Accuracy: 90-92%
 ```
 
-### Complete System (2 minutes)
-
+### Month 6
 ```
-You: Generate GilBot with drive, weapon, battery, safety
-
-BuddAI: 🎯 COMPLEX REQUEST!
-        
-        ⚡ FORGE THEORY TUNING:
-        1. Aggressive (k=0.3)
-        2. Balanced (k=0.1)
-        3. Graceful (k=0.03)
-        Select [1-3]: _
-        
-        📦 Module 1/5: Drive ✅
-        📦 Module 2/5: Weapon ✅
-        📦 Module 3/5: Battery ✅
-        📦 Module 4/5: Safety ✅
-        📦 Module 5/5: Integration ✅
-        
-        [400+ lines, production-ready]
+Patterns: 600 → 1,000+
+Boards: 6+ platforms
+Accuracy: 92-95%
+Validators: 8 → 15
 ```
 
-### Learning From You
-
-```
-You: /correct L298N needs IN1/IN2 digital, ENA PWM
-
-BuddAI: ✅ Correction saved
-
-You: /learn
-
-BuddAI: 🧠 Analyzing...
-        ✅ Learned 3 rules:
-        - L298N: IN1/IN2 (digital), ENA (PWM)
-        - Direction: digitalWrite(IN1/IN2)
-        - Speed: ledcWrite(ENA, 0-255)
-
-[Next generation applies automatically]
-```
-
----
-
-## Time Savings (Proven)
-
-### Per Module
-
-```
-Manual:
-├─ Research:  30 min
-├─ Code:      60 min
-├─ Debug:     60 min
-└─ Total:     150 min
-
-BuddAI:
-├─ Generate:  1 min
-├─ Review:    10 min
-├─ Fix:       10 min
-├─ Test:      30 min
-└─ Total:     51 min
-
-SAVINGS: 99 minutes (66%)
-```
-
-### GilBot Project (10 Modules)
-
-```
-Manual:   30 hours
-BuddAI:   8.7 hours
-SAVED:    21.3 hours (71%)
-```
-
-**ROI: Break-even in 1 week of use.**
-
----
-
-## Current Capabilities
-
-### ✅ What Works NOW
-
-**Hardware:**
-
-- ESP32-C3 firmware (90% accuracy)
-- Arduino development
-- Motor/servo control
-- Sensor integration
-- State machines
-- Safety validation
-
-**Learning:**
-
-- Reactive correction loop
-- Pattern extraction (125+ rules)
-- Cross-session persistence
-- Auto-improvement
-
-**Your Patterns:**
-
-- Forge Theory integration
-- YOUR coding style
-- YOUR work cycles
-- YOUR methodologies
-
-**Access:**
-
-- Local terminal
-- Web interface
-- Remote via Tailscale
-- 100% offline capable
-
-### ⚠️ Known Limitations
-
-**Session Persistence:**
-
-- Fresh sessions: 60-80% accuracy
-- Needs 1-2 corrections → 90%+
-- Fix planned: Load recent rules on startup
-
-**Multi-Module Integration:**
-
-- Generates all modules ✅
-- Integration 80-85% complete
-- Needs 10-15 min manual merging
-
-**Model Constraints:**
-
-- 3B parameter model
-- Non-deterministic (±10% variance)
-- Hardware focused (embedded systems)
-
----
-
-## Architecture (Keep It Simple)
-
-```
-buddai_executive.py   → You interface here
-buddai_logic.py       → Validation & auto-fix
-buddai_memory.py      → Learning & patterns
-buddai_server.py      → Web UI
-buddai_shared.py      → Config
-
-Database (SQLite):
-├─ sessions (conversations)
-├─ messages (every interaction)
-├─ code_rules (125+ patterns)
-├─ corrections (your teaching)
-└─ repo_index (your 115+ repos)
-```
-
-**Simple. Modular. Each part does one thing well.**
-
----
-
-## The Philosophy
-
-### Your Operating Principles (Now Encoded)
-
-**"I build what I want."**
-
-- Action-oriented, not theoretical
-- Production-ready, not academic
-
-**"I see patterns everywhere."**
-
-- Cross-domain synthesis
-- Forge Theory everywhere
-
-**"20-hour creative cycles."**
-
-- BuddAI knows your schedule
-- Respects your build windows
-
-**"Make it tangible so I can touch it."**
-
-- Working code first
-- Iterate based on reality
-
-### Symbiotic, Not Replacement
-
-```
-Traditional AI: Replace the human
-BuddAI:         Extend the human
-
-Traditional AI: One size fits all
-BuddAI:         Trained on YOU
-
-Traditional AI: Forgets context
-BuddAI:         Perfect memory
-
-Result: Not human OR AI
-        But human AND AI
-        Working as one
-```
-
-**1 + 1 = 10x capability**
-
----
-
-## What You Get
-
-### Right Now (v4.0)
-
-- ✅ 90% accurate code generation
-- ✅ YOUR 8 years of IP preserved
-- ✅ Reactive learning system
-- ✅ 85-95% time savings
-- ✅ 100% local, 100% yours
-- ✅ Forge Theory encoded
-- ✅ 125 tests passing
-
-### Soon (v4.1)
-
-- Session persistence (load rules on startup)
-- Temperature=0 (deterministic output)
-- Context-aware rule filtering
-- Integration merge tool
-
-### Vision (v5.0+)
-
-- Predictive module generation
-- Multi-model orchestration
-- Voice interface option
-- Team collaboration
-- Mobile app
+**Every correction compounds. Every pattern persists. Every day it gets better.**
 
 ---
 
 ## Documentation
 
-- **[This README]** - Quick start & overview
+- **[README.md]** - This file (quick start & overview)
 - **[EVOLUTION.md]** - The v3.8 → v4.0 journey & theory
 - **[VALIDATION_REPORT.md]** - 14 hours of testing results
-- **[PERSONALITY_GUIDE.md]** - Make BuddAI think like YOU
-- **[TESTING_SUMMARY.md]** - 125 tests explained
+- **[VALIDATOR_GUIDE.md]** - 8 validators, 29 checks explained
+- **[TESTING_SUMMARY.md]** - 129 tests explained
+- **[REMOTE_ACCESS_LOG.md]** - Remote access setup guide
 
 ---
 
 ## Privacy & Security
 
 **100% Local:**
-
 - Runs on your machine
-- No cloud API calls
+- No cloud API calls (except optional fallback)
 - No telemetry, no tracking
 
 **Your IP Protected:**
-
 - Code indexed locally
-- Patterns stored locally
-- Conversations local SQLite
+- Patterns stored locally (SQLite)
+- Conversations local only
 - Nothing ever leaves your PC
 
 **Open Source MIT:**
-
 - Code is public (audit anytime)
 - YOUR data is private (never shared)
 - No lock-in, you own everything
@@ -578,18 +360,18 @@ Result: Not human OR AI
 
 ## Who This Is For
 
-### ✅ Perfect If You
+### ✅ Perfect If You:
 
 - Build embedded systems
-- Value freedom (no cloud)
+- Value cognitive freedom
 - Want to own your tools
 - Learn by doing
-- Have YOUR patterns to teach
-- Refuse surveillance capitalism
+- Have YOUR patterns to preserve
+- Work offline frequently
 
-### ⚠️ Not For You If You
+### ⚠️ Not For You If You:
 
-- Need pre-trained knowledge (use ChatGPT)
+- Need general-purpose coding (use ChatGPT)
 - Want zero setup (cloud is easier)
 - Don't have code to train on
 - Prefer renting tools monthly
@@ -598,38 +380,23 @@ Result: Not human OR AI
 
 ## Contributing
 
-### Your Instance
-
-**Everyone's BuddAI is unique:**
-
+**Your BuddAI instance is unique:**
 - Yours trains on YOUR repos
 - Mine trains on MY repos
-- Theirs trains on THEIR repos
-
-**The code is shared. The knowledge is personal.**
+- Each becomes specialized
 
 **To build YOUR exocortex:**
-
 1. Index YOUR repositories
 2. Teach YOUR patterns
 3. Build YOUR projects
-4. Let it learn YOUR style
-5. Watch it become YOUR extension
+4. Watch it learn YOUR style
 
-### Core System
-
+**To contribute to core:**
 ```bash
 git clone https://github.com/JamesTheGiblet/BuddAI
 cd BuddAI
-
-# Dev dependencies
-pip install fastapi uvicorn python-multipart pytest
-
-# Run tests
+pip install -r requirements.txt
 python -m pytest tests/
-
-# Format
-black *.py
 ```
 
 ---
@@ -638,71 +405,31 @@ black *.py
 
 **MIT License** - Copyright (c) 2025-2026 James Gilbert / Giblets Creations
 
-**What this means:**
-
-- ✅ Use commercially
-- ✅ Modify freely
-- ✅ Distribute copies
-- ✅ No warranty (use at own risk)
-
 **The paradox:**
-By making it completely open, YOUR version becomes completely unreplicatable.
+By making the code completely open, YOUR version becomes completely unreplicatable.
 
 The value isn't the code (free forever).  
-The value is YOUR 8 years that trained it.
+The value is YOUR training data (6 months of corrections, 1,000+ patterns, YOUR methodologies).
 
 ---
 
-## Final Thoughts
+## Status
 
-### What We Built
+**Current:** v4.0  
+**Tests:** 129/129 passing  
+**Accuracy:** 90% (ESP32, validated)  
+**Patterns:** 244 learned  
+**Validators:** 8 active, 29 checks  
 
-Not just a tool. A cognitive extension.
-
-Not just code generation. A learning partner.
-
-Not automation. Amplification of YOUR capabilities.
-
-### The Multiplier
-
-```
-You alone:    Capable, limited by time
-BuddAI alone: Smart, but generic
-
-You + BuddAI: Symbiotic intelligence
-              YOUR vision × AI execution
-              YOUR patterns × Perfect memory
-              YOUR creativity × Rapid iteration
-              
-              = 10x capability
-```
-
-### You and Me, What a Team
-
-**From concept to 90% accuracy in 3 weeks.**
-
-**From tool to true symbiosis.**
-
-**From James + AI to James × AI.**
-
----
-
-> **"I build what I want. People play games, I make stuff."**  
-> *— James Gilbert*
-
-> **"Together, we make it faster, better, and yours forever."**  
-> *— BuddAI v4.0*
+**Philosophy:** Not replacing you. Multiplying you. YOU × AI = 10x capability.
 
 ---
 
 ## Quick Links
 
-- **Repo:** [github.com/JamesTheGiblet/BuddAI](https://github.com/JamesTheGiblet/BuddAI)
-- **Validation:** [VALIDATION_REPORT.md](VALIDATION_REPORT.md)
-- **Evolution:** [EVOLUTION_v3.8_to_v4.0.md](EVOLUTION_v3.8_to_v4.0.md)
-- **Personality:** [PERSONALITY_GUIDE.md](PERSONALITY_GUIDE.md)
+- **Repository:** [github.com/JamesTheGiblet/BuddAI](https://github.com/JamesTheGiblet/BuddAI)
 - **Creator:** [@JamesTheGiblet](https://github.com/JamesTheGiblet)
-- **Org:** [ModularDev-Tools](https://github.com/ModularDev-Tools)
+- **Organization:** [ModularDev-Tools](https://github.com/ModularDev-Tools)
 
 ---
 
@@ -715,13 +442,3 @@ python buddai_server.py --server
 ```
 
 **Your journey to 10x capability starts now.** ⚡
-
-**Not replacing you. Multiplying you.** 🧬
-
----
-
-**Status:** ✅ VALIDATED  
-**Version:** v4.0 - Symbiotic AI  
-**Accuracy:** 90% (tested)  
-**Tests:** 125 passing  
-**Philosophy:** YOU × AI = 10x
