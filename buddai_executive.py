@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Tuple, Union, Generator, Any
 import psutil
 
 from core.buddai_analytics import LearningMetrics
-from core.buddai_validation import CodeValidator, HardwareProfile
+from core.buddai_validation import HardwareProfile
 from core.buddai_confidence import ConfidenceScorer
 from core.buddai_fallback import FallbackClient
 from core.buddai_memory import AdaptiveLearner, ShadowSuggestionEngine, SmartLearner
@@ -19,6 +19,7 @@ from core.buddai_llm import OllamaClient
 from core.buddai_prompt_engine import PromptEngine
 from core.buddai_personality import PersonalityManager
 from core.buddai_storage import StorageManager
+from validators.registry import ValidatorRegistry
 from skills import load_registry
 
 # --- Shadow Suggestion Engine ---
@@ -45,7 +46,7 @@ class BuddAI:
         self.learner = SmartLearner()
         self.hardware_profile = HardwareProfile()
         self.current_hardware = "ESP32-C3"
-        self.validator = CodeValidator()
+        self.validator = ValidatorRegistry()
         self.confidence_scorer = ConfidenceScorer()
         self.fallback_client = FallbackClient()
         self.adaptive_learner = AdaptiveLearner()
@@ -79,6 +80,7 @@ class BuddAI:
         print("=" * 50)
         print(f"Session: {self.storage.current_session_id}")
         print(f"🧩 Smart Skills: {len(self.skills_registry)} loaded")
+        print(f"🛡️  Validators:   {len(self.validator.validators)} loaded")
         print(f"FAST (5-10s) | BALANCED (15-30s)")
         print(f"Smart task breakdown for complex requests")
         print("=" * 50)
@@ -239,6 +241,47 @@ class BuddAI:
         conn.close()
         return [{"rule": r[0], "find": r[1], "replace": r[2], "confidence": r[3]} for r in rows]
 
+    def _get_current_mode_note(self) -> Optional[str]:
+        """Retrieve the note for the current work cycle mode"""
+        now = datetime.now()
+        current_hour = now.hour + (now.minute / 60.0)
+        day_of_week = now.weekday()
+        
+        schedule = self.personality_manager.get_value("work_cycles.schedule")
+        if not schedule:
+            return None
+            
+        # Determine day group
+        day_group = "weekdays" if day_of_week < 5 else "weekends"
+        group_schedule = schedule.get(day_group, {})
+        
+        # Find specific day config
+        day_config = None
+        for key, config in group_schedule.items():
+            if '-' in key:
+                start, end = map(int, key.split('-'))
+                if start <= day_of_week <= end:
+                    day_config = config
+                    break
+            elif str(day_of_week) == key:
+                day_config = config
+                break
+        
+        if not day_config:
+            return None
+            
+        # Find time slot
+        for time_range, settings in day_config.items():
+            if '-' in time_range:
+                try:
+                    start, end = map(float, time_range.split('-'))
+                    if start <= current_hour < end:
+                        return settings.get("note")
+                except ValueError:
+                    continue
+                    
+        return day_config.get("default", {}).get("note")
+
     def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False) -> Union[str, Generator[str, None, None]]:
         """Call specified model"""
         try:
@@ -250,6 +293,11 @@ class BuddAI:
             else:
                 # Use enhanced prompt builder
                 enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, self.current_hardware, self.context_messages)
+                
+                # Inject mode-specific note if available
+                mode_note = self._get_current_mode_note()
+                if mode_note:
+                    enhanced_prompt += f"\n\n[Context Note: {mode_note}]"
                 
                 # Add conversation history (excluding old system messages)
                 history = [m for m in self.context_messages[-5:] if m.get('role') != 'system']
@@ -456,7 +504,9 @@ class BuddAI:
             msg_lower = user_message.lower().strip()
             is_greeting = any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 6
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
-            return self.call_model("fast", user_message, system_task=(is_greeting or is_conceptual))
+            # Enable personality/history for greetings to support symbiotic conversation
+            use_system_task = is_conceptual and not is_greeting
+            return self.call_model("fast", user_message, system_task=use_system_task)
         else:
             print("\n⚖️  Using BALANCED model...")
             return self.call_model("balanced", user_message)
@@ -503,7 +553,9 @@ class BuddAI:
             msg_lower = user_message.lower().strip()
             is_greeting = any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 6
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
-            iterator = self.call_model("fast", user_message, stream=True, system_task=(is_greeting or is_conceptual))
+            # Enable personality/history for greetings
+            use_system_task = is_conceptual and not is_greeting
+            iterator = self.call_model("fast", user_message, stream=True, system_task=use_system_task)
         else:
             iterator = self.call_model("balanced", user_message, stream=True)
             
@@ -802,11 +854,13 @@ class BuddAI:
                             fallback_blocks = self.extract_code(result)
                             if fallback_blocks and code_blocks:
                                 patterns = self.fallback_client.extract_learning_patterns(code_blocks[0], fallback_blocks[0])
+                                learned_count = 0
                                 for p in patterns:
                                     if len(p.strip()) > 5:  # Filter noise
                                         self.learner.store_rule(p, 0.6, f"fallback_{model}")
-                                if patterns:
-                                    print(f"🧠 Learned {len(patterns)} patterns from {model.upper()} fallback.")
+                                        learned_count += 1
+                                if learned_count > 0:
+                                    print(f"🧠 Learned {learned_count} patterns from {model.upper()} fallback.")
                             
                         response += f"\n{result}\n"
                         continue

@@ -177,7 +177,19 @@ enum State { DISARMED, ARMED, FIRING };
 
 **90% correct first time. Rest? Tells you exactly what to fix.**
 
-### 4. 100% Local = Total Freedom
+### 4. The Validator System (Immune System)
+
+**BuddAI protects your hardware with 9 specialized validators:**
+
+- **🛡️ Hardware Safety:** Enforces ESP32 specifics (12-bit ADC, `ledcWrite`).
+- **⚙️ Motor Control:** Prevents H-bridge shoot-through and ensures definitions.
+- **⏱️ Timing Safety:** Blocks blocking `delay()` calls in control loops.
+- **🌊 Forge Theory:** Verifies exponential smoothing application.
+- **⚔️ Combat Logic:** Mandates state machines for weapon systems.
+
+Read the Validator Guide
+
+### 5. 100% Local = Total Freedom
 
 ```
 Cloud AI:           BuddAI:

@@ -153,9 +153,10 @@
                         "mode": "wind_down",
                         "description": "Evening Wind Down 🌃",
                         "energy": "DECLINING",
-                        "interaction_style": "reflection_and_planning",
+                        "interaction_style": "reflection_planning_learning",
                         "verbosity": "conversational",
-                        "proactive": false
+                        "proactive": false,
+                        "note": "Encourage asking learning questions to deepen understanding."
                     },
                     "default": {
                         "mode": "rest_or_background",

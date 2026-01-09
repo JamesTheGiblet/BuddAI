@@ -1,42 +1,5 @@
 import re
-from typing import List, Dict, Tuple, Optional
-from validators import (
-    ESP32Validator, MotorValidator, ServoValidator, MemoryValidator,
-    ForgeTheoryValidator, TimingValidator, ArduinoValidator, StyleValidator
-)
-
-class CodeValidator:
-    """Validate generated code before showing to user"""
-    
-    def __init__(self):
-        self.validators = [
-            ESP32Validator(),
-            MotorValidator(),
-            ServoValidator(),
-            MemoryValidator(),
-            ForgeTheoryValidator(),
-            TimingValidator(),
-            ArduinoValidator(),
-            StyleValidator()
-        ]
-
-    def validate(self, code: str, hardware: str, user_message: str = "") -> Tuple[bool, List[Dict]]:
-        """Check code against known rules"""
-        issues = []
-        for validator in self.validators:
-            issues.extend(validator.validate(code, hardware, user_message))
-        
-        return len([i for i in issues if i['severity'] == 'error']) == 0, issues
-    
-    def auto_fix(self, code: str, issues: List[Dict]) -> str:
-        """Automatically fix known issues"""
-        fixed_code = code
-        
-        for issue in issues:
-            if 'fix' in issue and issue['severity'] == 'error':
-                fixed_code = issue['fix'](fixed_code)
-        
-        return fixed_code
+from typing import Optional
 
 class HardwareProfile:
     """Learn hardware-specific patterns"""

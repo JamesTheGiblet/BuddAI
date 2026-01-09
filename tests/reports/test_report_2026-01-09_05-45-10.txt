@@ -1,0 +1,242 @@
+BuddAI Test Report
+Date: 2026-01-09 05:45:10
+============================================================
+
+test_backup_delegation (tests.test_additional_coverage.TestAdditionalCoverage.test_backup_delegation)
+Test backup command delegates to storage manager ... ok
+test_export_markdown (tests.test_additional_coverage.TestAdditionalCoverage.test_export_markdown)
+Test markdown export content generation ... ok
+test_get_applicable_rules (tests.test_additional_coverage.TestAdditionalCoverage.test_get_applicable_rules)
+Test that only high-confidence rules are returned ... ok
+test_hardware_detection_flow (tests.test_additional_coverage.TestAdditionalCoverage.test_hardware_detection_flow)
+Test chat flow updates hardware profile ... ok
+test_import_session_collision (tests.test_additional_coverage.TestAdditionalCoverage.test_import_session_collision)
+Test importing session with ID collision generates new ID ... ok
+test_metrics_delegation (tests.test_additional_coverage.TestAdditionalCoverage.test_metrics_delegation)
+Test metrics command delegates to metrics component ... ok
+test_regenerate_invalid_id (tests.test_additional_coverage.TestAdditionalCoverage.test_regenerate_invalid_id)
+Test regeneration with non-existent message ID ... ok
+test_regenerate_success (tests.test_additional_coverage.TestAdditionalCoverage.test_regenerate_success)
+Test successful regeneration flow ... ok
+test_scan_style_execution (tests.test_additional_coverage.TestAdditionalCoverage.test_scan_style_execution)
+Test successful style scan and DB insertion ... ok
+test_scan_style_no_index (tests.test_additional_coverage.TestAdditionalCoverage.test_scan_style_no_index)
+Test scan_style_signature when no code is indexed ... ok
+test_slash_debug_empty (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_debug_empty)
+Test /debug when no prompt has been sent ... ok
+test_slash_reload (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_reload)
+Test /reload command refreshes registry ... ok
+test_slash_validate_no_code (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_validate_no_code)
+Test /validate when last message has no code ... ok
+test_slash_validate_no_context (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_validate_no_context)
+Test /validate with no history ... ok
+test_teach_rule (tests.test_additional_coverage.TestAdditionalCoverage.test_teach_rule)
+Test explicit rule teaching persistence ... ok
+test_welcome_message (tests.test_additional_coverage.TestAdditionalCoverage.test_welcome_message)
+Test welcome message includes rule count ... ok
+test_fallback_stats (tests.test_analytics.TestAnalytics.test_fallback_stats)
+Test calculation of fallback statistics ... ok
+test_fallback_stats_empty (tests.test_analytics.TestAnalytics.test_fallback_stats_empty)
+Test stats with empty database ... ok
+test_actionable_suggestions (tests.test_buddai.TestBuddAICore.test_actionable_suggestions) ... ok
+test_auto_learning (tests.test_buddai.TestBuddAICore.test_auto_learning) ... ok
+test_complexity_detection (tests.test_buddai.TestBuddAICore.test_complexity_detection) ... ok
+test_connection_pool (tests.test_buddai.TestBuddAICore.test_connection_pool) ... ok
+test_context_window (tests.test_buddai.TestBuddAICore.test_context_window) ... ok
+test_database_init (tests.test_buddai.TestBuddAICore.test_database_init) ... ok
+test_feedback_system (tests.test_buddai.TestBuddAICore.test_feedback_system) ... ok
+test_lru_cache (tests.test_buddai.TestBuddAICore.test_lru_cache) ... ok
+test_modular_plan (tests.test_buddai.TestBuddAICore.test_modular_plan) ... ok
+test_module_detection (tests.test_buddai.TestBuddAICore.test_module_detection) ... ok
+test_rapid_session_creation (tests.test_buddai.TestBuddAICore.test_rapid_session_creation) ... ok
+test_repo_isolation (tests.test_buddai.TestBuddAICore.test_repo_isolation) ... ok
+test_repository_indexing (tests.test_buddai.TestBuddAICore.test_repository_indexing) ... ok
+test_schedule_awareness (tests.test_buddai.TestBuddAICore.test_schedule_awareness) ... ok
+test_search_query_safety (tests.test_buddai.TestBuddAICore.test_search_query_safety) ... ok
+test_session_export (tests.test_buddai.TestBuddAICore.test_session_export) ... ok
+test_session_management (tests.test_buddai.TestBuddAICore.test_session_management) ... ok
+test_sql_injection_prevention (tests.test_buddai.TestBuddAICore.test_sql_injection_prevention) ... ok
+test_upload_security (tests.test_buddai.TestBuddAICore.test_upload_security) ... ok
+test_websocket_logic (tests.test_buddai.TestBuddAICore.test_websocket_logic) ... ok
+test_calculate_confidence_high (tests.test_buddai_confidence.TestConfidenceScorer.test_calculate_confidence_high)
+Test a high confidence scenario (Success + Matches) ... ok
+test_calculate_confidence_low (tests.test_buddai_confidence.TestConfidenceScorer.test_calculate_confidence_low)
+Test a low confidence scenario (Validation Failure) ... ok
+test_pattern_familiarity (tests.test_buddai_confidence.TestConfidenceScorer.test_pattern_familiarity)
+Test pattern matching logic ... ok
+test_should_escalate_thresholds (tests.test_buddai_confidence.TestConfidenceScorer.test_should_escalate_thresholds)
+Test flagging logic at specific boundaries ... ok
+test_validation_scoring_penalties (tests.test_buddai_confidence.TestConfidenceScorer.test_validation_scoring_penalties)
+Test that warnings reduce score but don't zero it ... ok
+test_end_to_end_validation_fix (tests.test_buddai_integration.TestBuddAIIntegration.test_end_to_end_validation_fix)
+Test that bad code generated by LLM is caught and fixed ... ok
+test_extract_modules (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_extract_modules)
+Verify module extraction logic ... ok
+test_method_annotations (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_method_annotations)
+Verify type hints exist on key methods ... ok
+test_routing_complex_request (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_complex_request)
+Test that complex requests route to modular build ... ok
+test_routing_forced_model (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_forced_model)
+Test that force_model overrides other logic ... ok
+test_routing_search_query (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_search_query)
+Test that search queries route to repository search ... ok
+test_routing_simple_question (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_simple_question)
+Test that simple questions route to the FAST model ... ok
+test_confidence_high (tests.test_confidence.TestConfidence.test_confidence_high)
+Known good code → should score >70% ... ok
+test_confidence_low (tests.test_confidence.TestConfidence.test_confidence_low)
+Edge case code → should score <70% ... ok
+test_threshold_detection (tests.test_confidence.TestConfidence.test_threshold_detection)
+Verify escalation trigger logic ... ok
+test_analyze_failure (tests.test_extended_features.TestExtendedFeatures.test_analyze_failure)
+Test failure analysis logic (DB read) ... ok
+test_apply_style_signature_regex (tests.test_extended_features.TestExtendedFeatures.test_apply_style_signature_regex)
+Test regex replacement based on learned rules ... ok
+test_check_skills_trigger (tests.test_extended_features.TestExtendedFeatures.test_check_skills_trigger)
+Test skill triggering mechanism ... ok
+test_clear_session (tests.test_extended_features.TestExtendedFeatures.test_clear_session)
+Test clearing context messages ... ok
+test_get_recent_context_json (tests.test_extended_features.TestExtendedFeatures.test_get_recent_context_json)
+Test context retrieval as JSON ... ok
+test_gpu_reset (tests.test_extended_features.TestExtendedFeatures.test_gpu_reset)
+Test GPU reset delegation ... ok
+test_hardware_detection_extended (tests.test_extended_features.TestExtendedFeatures.test_hardware_detection_extended)
+Ensure hardware detection delegates to profile ... ok
+test_learned_rules_retrieval (tests.test_extended_features.TestExtendedFeatures.test_learned_rules_retrieval)
+Test retrieval of high-confidence rules ... ok
+test_log_compilation (tests.test_extended_features.TestExtendedFeatures.test_log_compilation)
+Test logging compilation results to DB ... ok
+test_personality_forge_config (tests.test_extended_features.TestExtendedFeatures.test_personality_forge_config)
+Verify Forge Theory constants are loaded from personality ... ok
+test_save_correction (tests.test_extended_features.TestExtendedFeatures.test_save_correction)
+Test saving user corrections to DB ... ok
+test_slash_command_metrics (tests.test_extended_features.TestExtendedFeatures.test_slash_command_metrics)
+Test /metrics command output ... ok
+test_slash_command_status (tests.test_extended_features.TestExtendedFeatures.test_slash_command_status)
+Test /status command output ... ok
+test_slash_command_teach (tests.test_extended_features.TestExtendedFeatures.test_slash_command_teach)
+Test /teach command saves rule to DB ... ok
+test_style_summary (tests.test_extended_features.TestExtendedFeatures.test_style_summary)
+Test retrieval of style preferences from DB ... ok
+test_escalate_claude (tests.test_fallback_client.TestFallbackClient.test_escalate_claude)
+Test successful escalation to Claude ... ok
+test_escalate_no_key (tests.test_fallback_client.TestFallbackClient.test_escalate_no_key)
+Test behavior when API key is missing ... ok
+test_escalate_openai (tests.test_fallback_client.TestFallbackClient.test_escalate_openai)
+Test successful escalation to OpenAI ... ok
+test_escalate_success (tests.test_fallback_client.TestFallbackClient.test_escalate_success)
+Test successful escalation to Gemini ... ok
+test_extract_learning_patterns (tests.test_fallback_client.TestFallbackClient.test_extract_learning_patterns)
+Test extraction of patterns from code diffs ... ok
+test_fallback_logging (tests.test_fallback_logging.TestFallbackLogging.test_fallback_logging)
+Test that fallback prompts are written to log file ... ok
+test_logs_command (tests.test_fallback_logging.TestFallbackLogging.test_logs_command)
+Test /logs command retrieves content ... ok
+test_fallback_disabled (tests.test_fallback_logic.TestFallbackLogic.test_fallback_disabled)
+Test that standard warning appears when fallback is disabled ... ok
+test_fallback_learning (tests.test_fallback_logic.TestFallbackLogic.test_fallback_learning)
+Test that successful fallback triggers learning ... ok
+test_fallback_triggered (tests.test_fallback_logic.TestFallbackLogic.test_fallback_triggered)
+Test that fallback triggers when enabled and confidence is low ... ok
+test_specific_prompts_used (tests.test_fallback_prompts.TestFallbackPrompts.test_specific_prompts_used)
+Test that configured prompts are used for each model ... ok
+test_executive_chat_schedule_trigger (tests.test_final_coverage.TestFinalCoverage.test_executive_chat_schedule_trigger)
+Test schedule check trigger in chat ... ok
+test_executive_chat_skill_trigger (tests.test_final_coverage.TestFinalCoverage.test_executive_chat_skill_trigger)
+Test skill trigger in chat ... ok
+test_executive_slash_logs_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_logs_command)
+Test /logs command ... ok
+test_executive_slash_save_json_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_save_json_command)
+Test /save json command ... ok
+test_executive_slash_save_md_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_save_md_command)
+Test /save command (default markdown) ... ok
+test_executive_slash_train_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_train_command)
+Test /train command ... ok
+test_executive_slash_unknown_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_unknown_command)
+Test unknown slash command ... ok
+test_fine_tuner_prepare_training_data_empty (tests.test_final_coverage.TestFinalCoverage.test_fine_tuner_prepare_training_data_empty)
+Test training data prep with no data ... ok
+test_hardware_profile_detect_arduino (tests.test_final_coverage.TestFinalCoverage.test_hardware_profile_detect_arduino)
+Test detection of Arduino ... ok
+test_hardware_profile_detect_esp32 (tests.test_final_coverage.TestFinalCoverage.test_hardware_profile_detect_esp32)
+Test detection of ESP32 ... ok
+test_metrics_calculate_accuracy_defaults (tests.test_final_coverage.TestFinalCoverage.test_metrics_calculate_accuracy_defaults)
+Test metrics return default structure ... ok
+test_prompt_engine_extract_modules_multiple (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_extract_modules_multiple)
+Test extraction of multiple modules ... ok
+test_prompt_engine_extract_modules_none (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_extract_modules_none)
+Test extraction with no modules ... ok
+test_prompt_engine_is_complex_false (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_is_complex_false)
+Test complexity detection for simple requests ... ok
+test_prompt_engine_is_complex_true (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_is_complex_true)
+Test complexity detection for complex requests ... ok
+test_repo_manager_is_search_query_find (tests.test_final_coverage.TestFinalCoverage.test_repo_manager_is_search_query_find)
+Test search query detection: find ... ok
+test_repo_manager_is_search_query_how_to (tests.test_final_coverage.TestFinalCoverage.test_repo_manager_is_search_query_how_to)
+Test search query detection: how to ... ok
+test_repo_manager_search_repositories_mock (tests.test_final_coverage.TestFinalCoverage.test_repo_manager_search_repositories_mock)
+Test search repository execution ... ok
+test_shadow_engine_get_suggestions_mock (tests.test_final_coverage.TestFinalCoverage.test_shadow_engine_get_suggestions_mock)
+Test shadow engine suggestions ... ok
+test_validator_auto_fix_simple (tests.test_final_coverage.TestFinalCoverage.test_validator_auto_fix_simple)
+Test auto-fix logic ... ok
+test_validator_validate_issues (tests.test_final_coverage.TestFinalCoverage.test_validator_validate_issues)
+Test validation returns issues for empty code or specific patterns ... ok
+test_validator_validate_valid_code (tests.test_final_coverage.TestFinalCoverage.test_validator_validate_valid_code)
+Test validation of valid code ... ok
+test_chat_flow (tests.test_integration.TestBuddAIIntegration.test_chat_flow)
+POST /api/chat returns response ... ok
+test_health_check (tests.test_integration.TestBuddAIIntegration.test_health_check)
+GET / returns 200 and status ... ok
+test_multi_user_isolation_api (tests.test_integration.TestBuddAIIntegration.test_multi_user_isolation_api)
+Verify data isolation between users via API headers ... ok
+test_session_lifecycle_api (tests.test_integration.TestBuddAIIntegration.test_session_lifecycle_api)
+Test full session CRUD via API ... ok
+test_upload_api (tests.test_integration.TestBuddAIIntegration.test_upload_api)
+Test file upload endpoint ... ok
+test_advanced_features (tests.test_personality.TestPersonality.test_advanced_features)
+Verify Deep Key Access ... ok
+test_communication_style (tests.test_personality.TestPersonality.test_communication_style)
+Verify Communication & Phrases ... ok
+test_forge_theory (tests.test_personality.TestPersonality.test_forge_theory)
+Verify Forge Theory Configuration ... ok
+test_identity_meta (tests.test_personality.TestPersonality.test_identity_meta)
+Verify Identity & Meta ... ok
+test_interaction_modes (tests.test_personality.TestPersonality.test_interaction_modes)
+Verify Interaction Modes ... ok
+test_schedule_logic (tests.test_personality.TestPersonality.test_schedule_logic)
+Test Schedule & Work Cycles ... ok
+test_technical_preferences (tests.test_personality.TestPersonality.test_technical_preferences)
+Verify Technical Preferences ... ok
+test_wind_down_mode_configuration (tests.test_personality_wind_down.TestPersonalityWindDown.test_wind_down_mode_configuration)
+Verify wind_down mode loads new note and interaction style ... ok
+test_arduino_validator (tests.test_refactored_validators.TestRefactoredValidators.test_arduino_validator) ... ok
+test_esp32_adc_resolution (tests.test_refactored_validators.TestRefactoredValidators.test_esp32_adc_resolution) ... ok
+test_esp32_validator (tests.test_refactored_validators.TestRefactoredValidators.test_esp32_validator) ... ok
+test_forge_theory_validator (tests.test_refactored_validators.TestRefactoredValidators.test_forge_theory_validator) ... ok
+test_memory_validator (tests.test_refactored_validators.TestRefactoredValidators.test_memory_validator) ... ok
+test_motor_pwm_conflict (tests.test_refactored_validators.TestRefactoredValidators.test_motor_pwm_conflict) ... ok
+test_motor_validator (tests.test_refactored_validators.TestRefactoredValidators.test_motor_validator) ... ok
+test_servo_validator (tests.test_refactored_validators.TestRefactoredValidators.test_servo_validator) ... ok
+test_style_monolithic_loop (tests.test_refactored_validators.TestRefactoredValidators.test_style_monolithic_loop) ... ok
+test_style_validator (tests.test_refactored_validators.TestRefactoredValidators.test_style_validator) ... ok
+test_timing_validator (tests.test_refactored_validators.TestRefactoredValidators.test_timing_validator) ... ok
+test_calculator_logic (tests.test_skills.TestSkills.test_calculator_logic)
+Verify calculator skill math ... ok
+test_registry_loading (tests.test_skills.TestSkills.test_registry_loading)
+Ensure skills are discovered and loaded ... ok
+test_timer_parsing (tests.test_skills.TestSkills.test_timer_parsing)
+Verify timer parses duration correctly ... ok
+test_weather_mock (tests.test_skills.TestSkills.test_weather_mock)
+Verify weather skill with mocked network ... ok
+
+----------------------------------------------------------------------
+Ran 129 tests in 48.421s
+
+OK
+
+============================================================
+SUMMARY:
+Ran: 129 tests
+Failures: 0
+Errors: 0

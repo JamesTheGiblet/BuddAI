@@ -50,6 +50,12 @@ The most recent development sprint focused on the **Fallback Client** (escalatin
 | `test_esp32_validator` | Verifies ESP32-specific checks (e.g. analogWrite vs ledcWrite).|
 | `test_style_validator` | Verifies style enforcement (camelCase, modularity).            |
 
+### 6. Simulation Tools (`simulate_interaction.py`)
+
+| Tool Name                | Description                                                                                                                         |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `simulate_interaction.py`| Runs `main.py` with mocked inputs and LLM responses to verify the CLI user experience without needing a running Ollama instance.    |
+
 ---
 
 ## 🛠️ Failures & False Starts (Troubleshooting Log)

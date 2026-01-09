@@ -38,3 +38,9 @@ class BaseValidator:
         """
         code_lower = code.lower()
         return any(trigger.lower() in code_lower for trigger in self.triggers)
+
+    def find_line(self, code: str, substring: str) -> int:
+        for i, line in enumerate(code.splitlines(), 1):
+            if substring in line:
+                return i
+        return -1

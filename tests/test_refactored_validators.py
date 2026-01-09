@@ -23,11 +23,23 @@ class TestRefactoredValidators(unittest.TestCase):
         issues = val.validate(code, "ESP32", "")
         self.assertTrue(any("analogWrite" in i['message'] for i in issues))
         
+    def test_esp32_adc_resolution(self):
+        val = ESP32Validator()
+        code = "float v = analogRead(34) / 1023.0;"
+        issues = val.validate(code, "ESP32", "")
+        self.assertTrue(any("12-bit" in i['message'] for i in issues))
+
     def test_motor_validator(self):
         val = MotorValidator()
         # Test missing pins for L298N
         issues = val.validate("void loop() {}", "ESP32", "I need L298N code")
         self.assertTrue(any("Missing L298N" in i['message'] for i in issues))
+
+    def test_motor_pwm_conflict(self):
+        val = MotorValidator()
+        code = "ledcAttachPin(18, 0); digitalWrite(18, HIGH);"
+        issues = val.validate(code, "ESP32", "")
+        self.assertTrue(any("Conflict" in i['message'] for i in issues))
 
     def test_servo_validator(self):
         val = ServoValidator()
@@ -52,6 +64,13 @@ class TestRefactoredValidators(unittest.TestCase):
         issues = val.validate(code, "ESP32", "")
         self.assertTrue(any("camelCase" in i['message'] for i in issues))
 
+    def test_style_monolithic_loop(self):
+        val = StyleValidator()
+        # Create a loop with > 10 lines
+        code = "void loop() {\n" + "\n".join([f"  int x{i} = {i};" for i in range(15)]) + "\n}"
+        issues = val.validate(code, "ESP32", "make it modular")
+        self.assertTrue(any("loop() has" in i['message'] for i in issues))
+
     def test_timing_validator(self):
         val = TimingValidator()
         code = "void loop() { // motor logic\n delay(1000); }"
@@ -60,7 +79,14 @@ class TestRefactoredValidators(unittest.TestCase):
 
     def test_forge_theory_validator(self):
         val = ForgeTheoryValidator()
-        issues = val.validate("code", "ESP32", "")
+        # Test missing smoothing
+        code = "ledcWrite(motorPin, 255);"
+        issues = val.validate(code, "ESP32", "motor control")
+        self.assertTrue(any("Forge Theory" in i['message'] for i in issues))
+        
+        # Test present smoothing
+        code_good = "current += (target - current) * 0.1;"
+        issues = val.validate(code_good, "ESP32", "motor control")
         self.assertEqual(issues, [])
 
 if __name__ == '__main__':
