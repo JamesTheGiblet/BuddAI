@@ -5,7 +5,10 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
 
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 from core.buddai_analytics import LearningMetrics
 from core.buddai_validation import HardwareProfile
@@ -58,7 +61,6 @@ class BuddAI:
         self.prompt_engine = PromptEngine()
         self.skills_registry = load_registry()
         self.language_registry = get_language_registry()
-        print(f"Loaded {len(self.language_registry.get_supported_languages())} language skills")
         
         self.display_welcome_message()
         

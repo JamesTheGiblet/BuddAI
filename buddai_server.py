@@ -39,7 +39,7 @@ ALLOWED_TYPES = [
     "text/html", "text/css"
 ]
 
-app = FastAPI(title="BuddAI API", version="3.2")
+app = FastAPI(title="BuddAI API", version="4.5")
 
 # Allow React frontend to communicate
 app.add_middleware(
@@ -100,10 +100,42 @@ def is_port_available(port: int, host: str = "0.0.0.0") -> bool:
         except socket.error:
             return False
 
-def main() -> None:
+def start_server(ai_instance: BuddAI, host: str = "0.0.0.0", port: int = 8000, public_url: str = ""):
+    """Start the API server with the provided BuddAI instance"""
+    # Register the instance passed from main.py
+    buddai_manager.instances[ai_instance.user_id] = ai_instance
+
     if not check_ollama():
         print(f"❌ Ollama not running at {OLLAMA_HOST}:{OLLAMA_PORT}. Ensure it is running and accessible.")
-        sys.exit(1)
+        # We continue, as the user might be debugging the UI
+    
+    if not is_port_available(port, host):
+        print(f"⚠️ Port {port} is in use.")
+        for i in range(1, 11):
+            if is_port_available(port + i, host):
+                port += i
+                print(f"🔄 Switching to available port: {port}")
+                break
+        else:
+            print(f"❌ Could not find available port in range {port}-{port+10}")
+            sys.exit(1)
+    
+    # Silence health check logs from frontend polling
+    class EndpointFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            msg = record.getMessage()
+            return "/api/system/status" not in msg and '"GET / HTTP/1.1" 200' not in msg
+    logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
+    
+    print(f"🚀 Starting BuddAI API Server on port {port}...")
+    if public_url:
+        print(f"🔗 Public Access: {public_url}")
+        app.state.public_url = public_url
+        
+    uvicorn.run(app, host=host, port=port)
+
+def main() -> None:
+    """Entry point if running buddai_server.py directly"""
     
     parser = argparse.ArgumentParser(description="BuddAI Executive")
     parser.add_argument("--server", action="store_true", help="Run in server mode")
@@ -114,31 +146,9 @@ def main() -> None:
 
     if args.server:
         if SERVER_AVAILABLE:
-            port = args.port
-            if not is_port_available(port, args.host):
-                print(f"⚠️ Port {port} is in use.")
-                for i in range(1, 11):
-                    if is_port_available(port + i, args.host):
-                        port += i
-                        print(f"🔄 Switching to available port: {port}")
-                        break
-                else:
-                    print(f"❌ Could not find available port in range {args.port}-{args.port+10}")
-                    sys.exit(1)
-            
-            # Silence health check logs from frontend polling
-            class EndpointFilter(logging.Filter):
-                def filter(self, record: logging.LogRecord) -> bool:
-                    msg = record.getMessage()
-                    return "/api/system/status" not in msg and '"GET / HTTP/1.1" 200' not in msg
-            logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
-            
-            print(f"🚀 Starting BuddAI API Server on port {port}...")
-            if args.public_url:
-                print(f"🔗 Public Access: {args.public_url}")
-                app.state.public_url = args.public_url
-                
-            uvicorn.run(app, host=args.host, port=port)
+            # Create a default instance if running directly
+            ai = BuddAI()
+            start_server(ai, host=args.host, port=args.port, public_url=args.public_url)
         else:
             print("❌ Server dependencies missing. Install: pip install fastapi uvicorn aiofiles python-multipart")
     else:
@@ -578,74 +588,3 @@ async def upload_repo(file: UploadFile = File(...), user_id: str = Header("defau
             return {"message": f"✅ Successfully uploaded {safe_name}"}
     except Exception as e:
         return {"message": f"❌ Error: {str(e)}"}
-
-def check_ollama() -> bool:
-    try:
-        conn = http.client.HTTPConnection(OLLAMA_HOST, OLLAMA_PORT, timeout=5)
-        conn.request("GET", "/api/tags")
-        response = conn.getresponse()
-        if response.status == 200:
-            data = json.loads(response.read().decode('utf-8'))
-            conn.close()
-            installed_models = [m['name'] for m in data.get('models', [])]
-            missing = [m for m in MODELS.values() if m not in installed_models]
-            if missing:
-                print(f"⚠️  WARNING: Missing models in Ollama: {', '.join(missing)}")
-                print(f"   Run in host terminal: ollama pull {' && ollama pull '.join(missing)}")
-            return True
-        return False
-    except Exception:
-        return False
-
-def is_port_available(port: int, host: str = "0.0.0.0") -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind((host, port))
-            return True
-        except socket.error:
-            return False
-
-def main() -> None:
-    if not check_ollama():
-        print(f"❌ Ollama not running at {OLLAMA_HOST}:{OLLAMA_PORT}. Ensure it is running and accessible.")
-        sys.exit(1)
-    
-    parser = argparse.ArgumentParser(description="BuddAI Executive")
-    parser.add_argument("--server", action="store_true", help="Run in server mode")
-    parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host IP address")
-    parser.add_argument("--public-url", type=str, default="", help="Public URL for QR codes")
-    args = parser.parse_args()
-
-    if args.server:
-        if SERVER_AVAILABLE:
-            port = args.port
-            if not is_port_available(port, args.host):
-                print(f"⚠️ Port {port} is in use.")
-                for i in range(1, 11):
-                    if is_port_available(port + i, args.host):
-                        port += i
-                        print(f"🔄 Switching to available port: {port}")
-                        break
-                else:
-                    print(f"❌ Could not find available port in range {args.port}-{args.port+10}")
-                    sys.exit(1)
-            
-            # Silence health check logs from frontend polling
-            class EndpointFilter(logging.Filter):
-                def filter(self, record: logging.LogRecord) -> bool:
-                    msg = record.getMessage()
-                    return "/api/system/status" not in msg and '"GET / HTTP/1.1" 200' not in msg
-            logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
-            
-            print(f"🚀 Starting BuddAI API Server on port {port}...")
-            if args.public_url:
-                print(f"🔗 Public Access: {args.public_url}")
-                app.state.public_url = args.public_url
-                
-            uvicorn.run(app, host=args.host, port=port)
-        else:
-            print("❌ Server dependencies missing. Install: pip install fastapi uvicorn aiofiles python-multipart")
-    else:
-        buddai = BuddAI()
-        buddai.run()

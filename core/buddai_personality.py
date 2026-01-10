@@ -52,8 +52,8 @@ class PersonalityManager:
         missing = []
         
         version = self.get_value("meta.version")
-        if version and version != "4.0":
-             print(f"⚠️ Warning: Personality version mismatch. Loaded: {version}, Expected: 4.0")
+        if version and version != "4.5":
+             print(f"⚠️ Warning: Personality version mismatch. Loaded: {version}, Expected: 4.5")
 
         for section, keys in required_structure.items():
             if section not in self.personality:

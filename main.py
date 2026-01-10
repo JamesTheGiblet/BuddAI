@@ -13,13 +13,16 @@ def main():
     Main entry point for BuddAI.
     Boots the executive and enters the interaction loop.
     """
-    parser = argparse.ArgumentParser(description="BuddAI v4.0 - Symbiotic AI Exocortex")
+    parser = argparse.ArgumentParser(description="BuddAI v4.5 - Symbiotic AI Exocortex")
     parser.add_argument("--server", action="store_true", help="Start in server mode (Web/WebSocket)")
     parser.add_argument("--user", type=str, default="default", help="User ID for session isolation")
+    parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host IP address")
+    parser.add_argument("--public-url", type=str, default="", help="Public URL for QR codes")
     
     args = parser.parse_args()
 
-    print("\n🔌 Booting BuddAI v4.0...")
+    print("\n🔌 Booting BuddAI v4.5...")
     
     try:
         # Initialize Executive
@@ -30,7 +33,7 @@ def main():
             try:
                 # Attempt to import server module (if available)
                 from buddai_server import start_server
-                start_server(ai)
+                start_server(ai, host=args.host, port=args.port, public_url=args.public_url)
             except ImportError:
                 print("⚠️  buddai_server.py not found. Falling back to CLI mode.")
                 ai.run()
