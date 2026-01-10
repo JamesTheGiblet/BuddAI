@@ -21,6 +21,7 @@ from core.buddai_personality import PersonalityManager
 from core.buddai_storage import StorageManager
 from validators.registry import ValidatorRegistry
 from skills import load_registry
+from languages.language_registry import get_language_registry
 
 # --- Shadow Suggestion Engine ---
 
@@ -56,6 +57,8 @@ class BuddAI:
         self.llm = OllamaClient()
         self.prompt_engine = PromptEngine()
         self.skills_registry = load_registry()
+        self.language_registry = get_language_registry()
+        print(f"Loaded {len(self.language_registry.get_supported_languages())} language skills")
         
         self.display_welcome_message()
         
@@ -64,7 +67,7 @@ class BuddAI:
     def display_welcome_message(self):
         """Display the startup banner and status."""
         # Format welcome message with rule count
-        welcome_tmpl = self.personality_manager.get_value("communication.welcome_message", "BuddAI Executive v4.0 - Decoupled & Personality Sync")
+        welcome_tmpl = self.personality_manager.get_value("communication.welcome_message", "BuddAI Executive v4.5 - Enhanced Learning & Integration")
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -81,6 +84,7 @@ class BuddAI:
         print(f"Session: {self.storage.current_session_id}")
         print(f"🧩 Smart Skills: {len(self.skills_registry)} loaded")
         print(f"🛡️  Validators:   {len(self.validator.validators)} loaded")
+        print(f"🌐 Languages:    {len(self.language_registry.get_supported_languages())} loaded")
         print(f"FAST (5-10s) | BALANCED (15-30s)")
         print(f"Smart task breakdown for complex requests")
         print("=" * 50)
@@ -724,6 +728,9 @@ class BuddAI:
             else:
                 return self.export_session_to_markdown()
 
+        if cmd.startswith('/language'):
+            return self._handle_language_command(command)
+
         return f"Command {cmd.split()[0]} not supported in chat mode."
 
     def log_fallback_prompt(self, model: str, prompt: str) -> None:
@@ -736,6 +743,99 @@ class BuddAI:
         except Exception as e:
             print(f"Failed to log fallback prompt: {e}")
 
+    def _handle_language_command(self, message: str) -> str:
+        """Handle /language command"""
+        
+        parts = message.split(maxsplit=1)
+        
+        if len(parts) == 1 or parts[1] == 'list':
+            # List supported languages
+            languages = self.language_registry.get_supported_languages()
+            
+            output = "🌐 Supported Languages\n\n"
+            
+            for lang in sorted(languages):
+                skill = self.language_registry.get_skill_by_name(lang)
+                exts = ', '.join(skill.file_extensions)
+                output += f"**{skill.name}**: {exts}\n"
+            
+            return output
+        
+        # Parse command: /language <lang> <action> [args]
+        parts = message.split(maxsplit=2)
+        
+        if len(parts) < 3:
+            return "Usage: /language <language> <action> [args]\nActions: validate, template, patterns, practices"
+        
+        language = parts[1].lower()
+        action = parts[2].lower()
+        
+        skill = self.language_registry.get_skill_by_name(language)
+        
+        if not skill:
+            return f"Language '{language}' not supported. Use /language list"
+        
+        if action == 'patterns':
+            patterns = skill.get_patterns()
+            output = f"📋 {skill.name} Patterns\n\n"
+            for name, info in patterns.items():
+                output += f"**{name}**\n{info['description']}\n```\n{info['example']}\n```\n\n"
+            return output
+        
+        elif action == 'practices':
+            practices = skill.get_best_practices()
+            output = f"✅ {skill.name} Best Practices\n\n"
+            for practice in practices:
+                output += f"• {practice}\n"
+            return output
+        
+        elif action.startswith('template'):
+            # /language html template basic
+            template_parts = action.split()
+            if len(template_parts) < 2:
+                return "Usage: /language <lang> template <template_name>"
+            
+            template_name = template_parts[1]
+            template = skill.get_template(template_name)
+            
+            if template:
+                return f"```{language}\n{template}\n```"
+            else:
+                return f"Template '{template_name}' not found"
+        
+        else:
+            return f"Unknown action: {action}\nActions: patterns, practices, template"
+
+    def _extract_code_blocks(self, text: str) -> List[Dict]:
+        """Extract code blocks from markdown"""
+        pattern = r'```(\w+)?\n(.*?)```'
+        matches = re.findall(pattern, text, re.DOTALL)
+        
+        return [
+            {'language': lang or 'text', 'code': code}
+            for lang, code in matches
+        ]
+
+    def _format_validation_feedback(self, validation: Dict, language: str) -> str:
+        """Format validation feedback for display"""
+        output = f"**{language.upper()} Validation:**\n\n"
+        
+        if validation.get('issues'):
+            output += "❌ Issues:\n"
+            for issue in validation['issues']:
+                output += f"  • {issue}\n"
+        
+        if validation.get('warnings'):
+            output += "⚠️  Warnings:\n"
+            for warning in validation['warnings']:
+                output += f"  • {warning}\n"
+        
+        if validation.get('suggestions'):
+            output += "💡 Suggestions:\n"
+            for suggestion in validation['suggestions']:
+                output += f"  • {suggestion}\n"
+        
+        return output
 
     # --- Main Chat Method ---
     def chat(self, user_message: str, force_model: Optional[str] = None, forge_mode: str = "2") -> str:
@@ -744,6 +844,20 @@ class BuddAI:
         # Intercept commands
         if user_message.strip().startswith('/'):
             return self.handle_slash_command(user_message.strip())
+
+        # Detect code blocks and validate
+        code_blocks = self._extract_code_blocks(user_message)
+        
+        for block in code_blocks:
+            language = block.get('language', '').lower()
+            code = block.get('code', '')
+            
+            if language in self.language_registry.get_supported_languages():
+                validation = self.language_registry.validate_code(code, language)
+                
+                if validation.get('issues') or validation.get('warnings'):
+                    feedback = self._format_validation_feedback(validation, language)
+                    user_message += f"\n\n[System Note]\n{feedback}"
 
         # Detect Hardware Context
         detected_hw = self.hardware_profile.detect_hardware(user_message)

@@ -2,10 +2,10 @@
 
 > **A local code generator that remembers your corrections and gets better every time you use it.**
 
-[![Tests](https://img.shields.io/badge/tests-200%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-279%20passing-brightgreen)](VALIDATION_REPORT.md)
 [![Accuracy](https://img.shields.io/badge/ESP32%20accuracy-90%25-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
-[![Version](https://img.shields.io/badge/version-v4.0-purple)]()
+[![Version](https://img.shields.io/badge/version-v4.5-purple)]()
 
 ---
 
@@ -92,7 +92,7 @@ BuddAI: [Generates complete code]
 
 ### The Learning Loop
 
-**Example: Teaching BuddAI once saves forever**
+### Example: Teaching BuddAI once saves forever
 
 ```
 Step 1: Generate code
@@ -439,8 +439,8 @@ The value is YOUR training data (6 months of corrections, 1,000+ patterns, YOUR 
 
 ## Status
 
-**Current:** v4.0  
-**Tests:** 129/129 passing  
+**Current:** v4.5  
+**Tests:** 279/279 passing  
 **Accuracy:** 90% (ESP32, validated)  
 **Patterns:** 244 learned  
 **Validators:** 8 active, 29 checks  

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BuddAI - Production-Ready AI Code Assistant">
+    <title>BuddAI - AI Code Assistant</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --dark: #343a40;
+            --light: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        header {
+            background: var(--dark);
+            color: white;
+            padding: 1rem 0;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 2rem;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 6rem 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        
+        .cta {
+            display: inline-block;
+            background: white;
+            color: var(--primary);
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        
+        .cta:hover {
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            padding: 4rem 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .feature {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 0.5rem;
+        }
+        
+        .feature h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        
+        footer {
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">BuddAI</div>
+            <div>
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="https://github.com/JamesTheGiblet/BuddAI">GitHub</a>
+            </div>
+        </nav>
+    </header>
+    
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Production-Ready AI Code Assistant</h1>
+                <p>Build better code faster with AI-powered assistance for embedded systems and web development</p>
+                <a href="https://github.com/JamesTheGiblet/BuddAI" class="cta">Get Started</a>
+            </div>
+        </section>
+        
+        <section id="features" class="features">
+            <div class="container">
+                <h2 style="text-align: center;">Features</h2>
+                
+                <div class="feature-grid">
+                    <article class="feature">
+                        <h3>🤖 AI-Powered</h3>
+                        <p>Multi-provider fallback with GPT-4, Claude, and Gemini support</p>
+                    </article>
+                    
+                    <article class="feature">
+                        <h3>🛠️ 17 Tools</h3>
+                        <p>Production-ready tools for code analysis, documentation, and more</p>
+                    </article>
+                    
+                    <article class="feature">
+                        <h3>✅ 10 Validators</h3>
+                        <p>Catch bugs before they happen with specialized validators</p>
+                    </article>
+                    
+                    <article class="feature">
+                        <h3>🧠 Smart Memory</h3>
+                        <p>Learns from corrections with exponential decay scoring</p>
+                    </article>
+                    
+                    <article class="feature">
+                        <h3>🌐 Language Skills</h3>
+                        <p>HTML, CSS, JavaScript, and embedded systems support</p>
+                    </article>
+                    
+                    <article class="feature">
+                        <h3>📊 90% Accuracy</h3>
+                        <p>Validated over 14 hours on real ESP32 projects</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2026 BuddAI - Production-Ready AI Code Assistant</p>
+    </footer>
+</body>
+</html>
