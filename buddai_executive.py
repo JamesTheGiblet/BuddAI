@@ -49,7 +49,7 @@ class BuddAI:
         self.shadow_engine = ShadowSuggestionEngine(DB_PATH, self.user_id)
         self.learner = SmartLearner()
         self.hardware_profile = HardwareProfile()
-        self.current_hardware = "ESP32-C3"
+        self.current_hardware = "Generic"
         self.validator = ValidatorRegistry()
         self.confidence_scorer = ConfidenceScorer()
         self.fallback_client = FallbackClient()
@@ -288,7 +288,7 @@ class BuddAI:
                     
         return day_config.get("default", {}).get("note")
 
-    def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False) -> Union[str, Generator[str, None, None]]:
+    def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False, hardware_override: Optional[str] = None) -> Union[str, Generator[str, None, None]]:
         """Call specified model"""
         try:
             messages = []
@@ -298,7 +298,8 @@ class BuddAI:
                 messages.append({"role": "user", "content": message})
             else:
                 # Use enhanced prompt builder
-                enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, self.current_hardware, self.context_messages)
+                hw_context = hardware_override if hardware_override else self.current_hardware
+                enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, hw_context, self.context_messages)
                 
                 # Inject mode-specific note if available
                 mode_note = self._get_current_mode_note()
@@ -485,6 +486,14 @@ class BuddAI:
                         print(f"❌ Skill Error ({skill['name']}): {e}")
         return None
 
+    def _is_general_discussion(self, text: str) -> bool:
+        """Check if message is likely a general discussion/hardware question"""
+        keywords = ["replace", "replacing", "upgrade", "wiring", "pinout", "board", "compatible", "difference", "vs", "printer", "creality", "artillery"]
+        text_lower = text.lower()
+        if any(w in text_lower for w in ["code", "script", "program", "compile", "function", "loop()", "setup()"]):
+            return False
+        return any(k in text_lower for k in keywords)
+
     def _route_request(self, user_message: str, force_model: Optional[str], forge_mode: str) -> str:
         """Route the request to the appropriate model or handler."""
         # Determine model based on complexity
@@ -504,6 +513,9 @@ class BuddAI:
         elif self.repo_manager.is_search_query(user_message):
             # This is a search query - query the database
             return self.repo_manager.search_repositories(user_message)
+        elif self._is_general_discussion(user_message):
+            print("\n⚡ Using BALANCED model (General Context)...")
+            return self.call_model("balanced", user_message, hardware_override="General Electronics")
         elif self.prompt_engine.is_simple_question(user_message):
             print("\n⚡ Using FAST model (simple question)...")
             # Don't force code generation prompt for simple greetings or definitions
@@ -562,6 +574,9 @@ class BuddAI:
             # Enable personality/history for greetings
             use_system_task = is_conceptual and not is_greeting
             iterator = self.call_model("fast", user_message, stream=True, system_task=use_system_task)
+        elif self._is_general_discussion(user_message):
+            print("\n⚡ Using BALANCED model (General Context)...")
+            iterator = self.call_model("balanced", user_message, stream=True, hardware_override="General Electronics")
         else:
             iterator = self.call_model("balanced", user_message, stream=True)
             
