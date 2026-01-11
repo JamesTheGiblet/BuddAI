@@ -66,7 +66,7 @@ class TestBuddAITypesAndLogic(unittest.TestCase):
         with patch.object(self.buddai, 'call_model', return_value="Fast response") as mock_call:
             response = self.buddai._route_request("What is a servo?", force_model=None, forge_mode="2")
             
-            mock_call.assert_called_with("fast", "What is a servo?", system_task=True)
+            mock_call.assert_called_with("fast", "What is a servo?", system_task=True, hardware_override=None)
             self.assertEqual(response, "Fast response")
 
     def test_routing_complex_request(self):

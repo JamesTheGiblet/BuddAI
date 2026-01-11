@@ -14,7 +14,10 @@ import os
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pattern_pruner import PatternPruner
+try:
+    from pattern.pattern_pruner import PatternPruner
+except ImportError:
+    from pattern_pruner import PatternPruner
 
 class TestPatternPruner(unittest.TestCase):
     def setUp(self):

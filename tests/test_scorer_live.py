@@ -10,7 +10,10 @@ import sqlite3
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Connect to real database
-from pattern_scorer import PatternScorer
+try:
+    from pattern.pattern_scorer import PatternScorer
+except ImportError:
+    from pattern_scorer import PatternScorer
 from core.buddai_shared import DB_PATH
 
 def get_db_connection():

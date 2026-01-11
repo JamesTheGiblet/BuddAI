@@ -3,8 +3,8 @@ Tests for Workflow Detector
 """
 
 import unittest
-from workflows.workflow_base import Workflow, WorkflowStep
-from workflows.workflow_detector import WorkflowDetector, get_workflow_detector
+from core.workflow_base import Workflow, WorkflowStep
+from core.workflow_detector import WorkflowDetector, get_workflow_detector
 
 class MockWorkflow(Workflow):
     """Mock workflow for testing"""

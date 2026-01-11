@@ -5,6 +5,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
 
+from core.workflow_detector import WorkflowDetector
+
 try:
     import psutil
 except ImportError:
@@ -14,6 +16,7 @@ from core.buddai_analytics import LearningMetrics
 from core.buddai_validation import HardwareProfile
 from core.buddai_confidence import ConfidenceScorer
 from core.buddai_fallback import FallbackClient
+from core.buddai_abilities import ConversationProtocol
 from core.buddai_memory import AdaptiveLearner, ShadowSuggestionEngine, SmartLearner
 from core.buddai_shared import DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
 from core.buddai_training import ModelFineTuner
@@ -56,11 +59,13 @@ class BuddAI:
         self.adaptive_learner = AdaptiveLearner()
         self.metrics = LearningMetrics()
         self.fine_tuner = ModelFineTuner()
+        self.conversation_protocol = ConversationProtocol(self.personality_manager)
         self.repo_manager = RepoManager(DB_PATH, self.user_id)
         self.llm = OllamaClient()
         self.prompt_engine = PromptEngine()
         self.skills_registry = load_registry()
         self.language_registry = get_language_registry()
+        self.workflow_detector = WorkflowDetector()
         
         self.display_welcome_message()
         
@@ -299,7 +304,22 @@ class BuddAI:
             else:
                 # Use enhanced prompt builder
                 hw_context = hardware_override if hardware_override else self.current_hardware
-                enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, hw_context, self.context_messages)
+                
+                if hw_context == "Conversational":
+                    # Bypass PromptEngine for pure conversation to avoid code bias
+                    persona = self.personality_manager.get_value("identity.persona_description", "You are BuddAI.")
+                    
+                    # Inject Forge Theory context for conversational awareness
+                    ft_desc = self.personality_manager.get_value("forge_theory.description", "")
+                    ft_formula = self.personality_manager.get_value("forge_theory.formula", "")
+                    ft_context = f"Forge Theory: {ft_desc} (Formula: {ft_formula})" if ft_desc else ""
+
+                    # Inject Memory
+                    memory = self.adaptive_learner.get_relevant_facts()
+                    messages.append({"role": "system", "content": f"{persona}\n\n{ft_context}\n\n{memory}\n\nMode: Conversational. Do NOT generate code. Be helpful and concise."})
+                    enhanced_prompt = message
+                else:
+                    enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, hw_context, self.context_messages)
                 
                 # Inject mode-specific note if available
                 mode_note = self._get_current_mode_note()
@@ -488,7 +508,7 @@ class BuddAI:
 
     def _is_general_discussion(self, text: str) -> bool:
         """Check if message is likely a general discussion/hardware question"""
-        keywords = ["replace", "replacing", "upgrade", "wiring", "pinout", "board", "compatible", "difference", "vs", "printer", "creality", "artillery"]
+        keywords = ["replace", "replacing", "upgrade", "wiring", "pinout", "board", "compatible", "difference", "vs", "printer", "creality", "artillery", "conversation", "chat", "talk"]
         text_lower = text.lower()
         if any(w in text_lower for w in ["code", "script", "program", "compile", "function", "loop()", "setup()"]):
             return False
@@ -513,18 +533,27 @@ class BuddAI:
         elif self.repo_manager.is_search_query(user_message):
             # This is a search query - query the database
             return self.repo_manager.search_repositories(user_message)
+        elif self.conversation_protocol.is_conversational(user_message):
+            # New Conversation Protocol
+            print("\n💬 Using FAST model (Conversational Protocol)...")
+            return self.call_model("fast", user_message, system_task=True, hardware_override="Conversational")
         elif self._is_general_discussion(user_message):
             print("\n⚡ Using BALANCED model (General Context)...")
-            return self.call_model("balanced", user_message, hardware_override="General Electronics")
+            hw_context = "Conversational" if any(w in user_message.lower() for w in ["conversation", "chat", "talk"]) else "General Electronics"
+            return self.call_model("balanced", user_message, hardware_override=hw_context)
         elif self.prompt_engine.is_simple_question(user_message):
             print("\n⚡ Using FAST model (simple question)...")
             # Don't force code generation prompt for simple greetings or definitions
             msg_lower = user_message.lower().strip()
-            is_greeting = any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 6
+            is_greeting = (any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 20) or "how are you" in msg_lower
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
             # Enable personality/history for greetings to support symbiotic conversation
             use_system_task = is_conceptual and not is_greeting
-            return self.call_model("fast", user_message, system_task=use_system_task)
+            
+            # Prevent code generation for greetings by overriding hardware context
+            hw_override = "Conversational" if is_greeting else None
+            
+            return self.call_model("fast", user_message, system_task=use_system_task, hardware_override=hw_override)
         else:
             print("\n⚖️  Using BALANCED model...")
             return self.call_model("balanced", user_message)
@@ -748,6 +777,9 @@ class BuddAI:
         if cmd.startswith('/language'):
             return self._handle_language_command(command)
 
+        if cmd.startswith('/projects'):
+            return self._handle_projects_command(command)
+
         return f"Command {cmd.split()[0]} not supported in chat mode."
 
     def log_fallback_prompt(self, model: str, prompt: str) -> None:
@@ -823,6 +855,36 @@ class BuddAI:
         else:
             return f"Unknown action: {action}\nActions: patterns, practices, template"
 
+    def _handle_projects_command(self, command: str) -> str:
+        """Handle /projects command"""
+        parts = command.split(maxsplit=2)
+        action = parts[1].lower() if len(parts) > 1 else 'list'
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY, name TEXT, status TEXT, created_at TEXT)")
+        
+        if action == 'list':
+            cursor.execute("SELECT name, status FROM projects ORDER BY created_at DESC")
+            rows = cursor.fetchall()
+            conn.close()
+            if not rows:
+                return "📂 No active projects. Use /projects new <name>"
+            return "📂 Projects:\n" + "\n".join([f"- {r[0]} ({r[1]})" for r in rows])
+            
+        if action == 'new':
+            if len(parts) < 3:
+                conn.close()
+                return "Usage: /projects new <name>"
+            name = parts[2]
+            cursor.execute("INSERT INTO projects (name, status, created_at) VALUES (?, ?, ?)", (name, 'active', datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+            return f"✅ Project '{name}' created."
+            
+        conn.close()
+        return "Usage: /projects [list|new <name>]"
+
     def _extract_code_blocks(self, text: str) -> List[Dict]:
         """Extract code blocks from markdown"""
         pattern = r'```(\w+)?\n(.*?)```'
@@ -891,6 +953,11 @@ class BuddAI:
         user_msg_id = self.storage.save_message("user", user_message)
         self.context_messages.append({"id": user_msg_id, "role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
+        # Detect Intent
+        intent, confidence = self.workflow_detector.detect_intent(user_message)
+        if confidence > 0.7:
+            print(f"🎯 Intent Detected: {intent} ({confidence:.2f})")
+
         # Check Skills (High Priority)
         skill_result = self.check_skills(user_message)
         if skill_result:
@@ -898,6 +965,9 @@ class BuddAI:
             self.last_generated_id = msg_id
             self.context_messages.append({"id": msg_id, "role": "assistant", "content": skill_result, "timestamp": datetime.now().isoformat()})
             return skill_result
+
+        # Learn from conversation (Memory)
+        self.adaptive_learner.extract_conversational_facts(user_message, self)
 
         # Direct Schedule Check
         schedule_triggers = self.personality_manager.get_value("work_cycles.schedule_check_triggers", ["my schedule"])
@@ -1139,9 +1209,37 @@ class BuddAI:
     def create_backup(self) -> Tuple[bool, str]:
         return self.storage.create_backup()
 
+    def initiate_conversation(self) -> None:
+        """BuddAI starts the conversation based on context"""
+        status = self.personality_manager.get_user_status()
+        user_name = self.personality_manager.get_value("identity.user_name", "User")
+        
+        prompt = f"""
+        Task: Initiate conversation with {user_name}.
+        Current Context: {status}
+        Time: {datetime.now().strftime('%H:%M')}
+        
+        Generate a brief, context-aware opening message. 
+        If it's a build session, be ready to work.
+        If it's rest time, be casual.
+        Keep it under 2 sentences.
+        """
+        
+        # Use fast model for greeting
+        greeting = self.call_model("fast", prompt, system_task=True, hardware_override="Conversational")
+        
+        if isinstance(greeting, str):
+            greeting = greeting.strip('"').strip()
+            print(f"\nBuddAI:\n{greeting}\n")
+            
+            # Save to history
+            msg_id = self.storage.save_message("assistant", greeting)
+            self.context_messages.append({"id": msg_id, "role": "assistant", "content": greeting, "timestamp": datetime.now().isoformat()})
+
     def run(self) -> None:
         """Main loop"""
         try:
+            self.initiate_conversation()
             force_model = None
             while True:
                 user_name = self.personality_manager.get_value("identity.user_name", "User")

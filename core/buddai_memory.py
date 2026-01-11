@@ -209,6 +209,71 @@ class AdaptiveLearner:
         conn.commit()
         conn.close()
 
+    def extract_conversational_facts(self, user_message: str, ai_interface) -> None:
+        """Extract and store facts from conversation"""
+        # Heuristic to avoid processing every short message
+        triggers = ["i am", "i like", "i have", "my name", "i work", "i live", "my wife", "my husband", "my project", "i want", "i need", "remember"]
+        if not any(t in user_message.lower() for t in triggers):
+            return
+
+        prompt = f"""Extract permanent user facts from this message. Ignore temporary states.
+User: "{user_message}"
+Format: Category: Fact
+If none, return NONE."""
+        
+        try:
+            # Use fast model for extraction to avoid latency
+            response = ai_interface.call_model("fast", prompt, system_task=True)
+            if "NONE" in response: return
+            
+            for line in response.splitlines():
+                if ":" in line:
+                    parts = line.split(":", 1)
+                    if len(parts) == 2:
+                        category = parts[0].strip()
+                        fact = parts[1].strip()
+                        # Clean up category
+                        category = category.lower().replace("fact", "").strip()
+                        self.store_fact(category, fact)
+                        print(f"🧠 Learned: {category} - {fact}")
+        except Exception as e:
+            print(f"Learning error: {e}")
+
+    def store_fact(self, category: str, fact: str):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check for duplicates to avoid spamming DB
+        cat_key = f"fact_{category}"
+        cursor.execute("SELECT id FROM style_preferences WHERE category = ? AND preference = ?", (cat_key, fact))
+        if cursor.fetchone():
+            conn.close()
+            return
+
+        cursor.execute("""
+            INSERT INTO style_preferences (user_id, category, preference, confidence, extracted_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, ("default", cat_key, fact, 0.9, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+
+    def get_relevant_facts(self, limit: int = 10) -> str:
+        """Retrieve recent learned facts"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT category, preference FROM style_preferences 
+            WHERE category LIKE 'fact_%' 
+            ORDER BY extracted_at DESC LIMIT ?
+        """, (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        if not rows: return ""
+        
+        facts = [f"- {r[0].replace('fact_', '')}: {r[1]}" for r in rows]
+        return "\n[User Memory]\n" + "\n".join(facts)
+
 
 
 class SmartLearner:

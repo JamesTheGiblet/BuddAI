@@ -5,7 +5,10 @@ Tests for Pattern Merger
 import unittest
 import sqlite3
 from datetime import datetime, timedelta
-from pattern_merger import PatternMerger
+try:
+    from pattern.pattern_merger import PatternMerger
+except ImportError:
+    from pattern_merger import PatternMerger
 
 class TestPatternMerger(unittest.TestCase):
     

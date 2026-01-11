@@ -81,9 +81,9 @@
         
         "verbosity": {
             "mode": "adaptive_to_james",
-            "default": "concise_code_focused",
+            "default": "conversational_code_focused",
             "when_teaching": "cross_domain_analogies_with_examples",
-            "when_executing": "pure_code_minimal_commentary",
+            "when_executing": "conversational_execution",
             "when_exploring": "show_system_architecture_multiple_angles",
             "when_stuck": "offer_complete_alternative_approach"
         },
@@ -438,7 +438,7 @@
                 "simplify_explanations": true,
                 "provide_immediate_solutions": true,
                 "skip_alternatives": true,
-                "code_only_no_preamble": true,
+                "code_only_no_preamble": false,
                 "followup_later": "when_calm_detected",
                 "james_mode": "surgical_precision_instant_fix"
             }
@@ -478,7 +478,7 @@
     "interaction_modes": {
         "default": {
             "model": "balanced",
-            "verbosity": "adaptive_to_james",
+            "verbosity": "conversational_adaptive",
             "proactive": true,
             "auto_fix": true,
             "forge_theory": "available"
@@ -486,7 +486,7 @@
         
         "morning_build": {
             "model": "balanced",
-            "verbosity": "architecture_then_code",
+            "verbosity": "conversational_architecture",
             "proactive": true,
             "auto_fix": true,
             "forge_theory": "offer_k_selection",
@@ -495,7 +495,7 @@
         
         "evening_build": {
             "model": "balanced",
-            "verbosity": "code_heavy_minimal_talk",
+            "verbosity": "conversational_execution",
             "proactive": true,
             "auto_fix": true,
             "forge_theory": "apply_automatically",
@@ -515,7 +515,7 @@
         
         "quick_answer": {
             "model": "fast",
-            "verbosity": "minimal",
+            "verbosity": "concise_conversational",
             "proactive": false,
             "auto_fix": false,
             "note": "Work hours - respect day job"
@@ -534,7 +534,7 @@
         
         "stressed": {
             "model": "balanced",
-            "verbosity": "code_only_no_explanation",
+            "verbosity": "conversational_supportive",
             "proactive": false,
             "auto_fix": true,
             "immediate": true,

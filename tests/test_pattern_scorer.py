@@ -5,7 +5,10 @@ Tests for Pattern Scorer
 import unittest
 import sqlite3
 from datetime import datetime, timedelta
-from pattern_scorer import PatternScorer
+try:
+    from pattern.pattern_scorer import PatternScorer
+except ImportError:
+    from pattern_scorer import PatternScorer
 
 class TestPatternScorer(unittest.TestCase):
     
