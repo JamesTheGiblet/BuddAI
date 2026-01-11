@@ -39,7 +39,7 @@ ALLOWED_TYPES = [
     "text/html", "text/css"
 ]
 
-app = FastAPI(title="BuddAI API", version="4.5")
+app = FastAPI(title="BuddAI API", version="5.0")
 
 # Allow React frontend to communicate
 app.add_middleware(

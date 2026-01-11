@@ -13,7 +13,7 @@ def main():
     Main entry point for BuddAI.
     Boots the executive and enters the interaction loop.
     """
-    parser = argparse.ArgumentParser(description="BuddAI v4.5 - Symbiotic AI Exocortex")
+    parser = argparse.ArgumentParser(description="BuddAI v5.0 - Symbiotic AI Exocortex")
     parser.add_argument("--server", action="store_true", help="Start in server mode (Web/WebSocket)")
     parser.add_argument("--user", type=str, default="default", help="User ID for session isolation")
     parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
@@ -22,7 +22,7 @@ def main():
     
     args = parser.parse_args()
 
-    print("\n🔌 Booting BuddAI v4.5...")
+    print("\n🔌 Booting BuddAI v5.0...")
     
     try:
         # Initialize Executive

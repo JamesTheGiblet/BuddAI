@@ -1,0 +1,861 @@
+BuddAI Test Report
+Date: 2026-01-11_11-44-40
+============================================================
+
+test_backup_delegation (tests.test_additional_coverage.TestAdditionalCoverage.test_backup_delegation)
+Test backup command delegates to storage manager ... ok
+test_export_markdown (tests.test_additional_coverage.TestAdditionalCoverage.test_export_markdown)
+Test markdown export content generation ... ok
+test_get_applicable_rules (tests.test_additional_coverage.TestAdditionalCoverage.test_get_applicable_rules)
+Test that only high-confidence rules are returned ... ok
+test_hardware_detection_flow (tests.test_additional_coverage.TestAdditionalCoverage.test_hardware_detection_flow)
+Test chat flow updates hardware profile ... ok
+test_import_session_collision (tests.test_additional_coverage.TestAdditionalCoverage.test_import_session_collision)
+Test importing session with ID collision generates new ID ... ok
+test_metrics_delegation (tests.test_additional_coverage.TestAdditionalCoverage.test_metrics_delegation)
+Test metrics command delegates to metrics component ... ok
+test_regenerate_invalid_id (tests.test_additional_coverage.TestAdditionalCoverage.test_regenerate_invalid_id)
+Test regeneration with non-existent message ID ... ok
+test_regenerate_success (tests.test_additional_coverage.TestAdditionalCoverage.test_regenerate_success)
+Test successful regeneration flow ... ok
+test_scan_style_execution (tests.test_additional_coverage.TestAdditionalCoverage.test_scan_style_execution)
+Test successful style scan and DB insertion ... ok
+test_scan_style_no_index (tests.test_additional_coverage.TestAdditionalCoverage.test_scan_style_no_index)
+Test scan_style_signature when no code is indexed ... ok
+test_slash_debug_empty (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_debug_empty)
+Test /debug when no prompt has been sent ... ok
+test_slash_reload (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_reload)
+Test /reload command refreshes registry ... ok
+test_slash_validate_no_code (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_validate_no_code)
+Test /validate when last message has no code ... ok
+test_slash_validate_no_context (tests.test_additional_coverage.TestAdditionalCoverage.test_slash_validate_no_context)
+Test /validate with no history ... ok
+test_teach_rule (tests.test_additional_coverage.TestAdditionalCoverage.test_teach_rule)
+Test explicit rule teaching persistence ... ok
+test_welcome_message (tests.test_additional_coverage.TestAdditionalCoverage.test_welcome_message)
+Test welcome message includes rule count ... ok
+test_fallback_stats (tests.test_analytics.TestAnalytics.test_fallback_stats)
+Test calculation of fallback statistics ... ok
+test_fallback_stats_empty (tests.test_analytics.TestAnalytics.test_fallback_stats_empty)
+Test stats with empty database ... ok
+test_actionable_suggestions (tests.test_buddai.TestBuddAICore.test_actionable_suggestions) ... ok
+test_auto_learning (tests.test_buddai.TestBuddAICore.test_auto_learning) ... ok
+test_complexity_detection (tests.test_buddai.TestBuddAICore.test_complexity_detection) ... ok
+test_connection_pool (tests.test_buddai.TestBuddAICore.test_connection_pool) ... ok
+test_context_window (tests.test_buddai.TestBuddAICore.test_context_window) ... ok
+test_database_init (tests.test_buddai.TestBuddAICore.test_database_init) ... ok
+test_feedback_system (tests.test_buddai.TestBuddAICore.test_feedback_system) ... ok
+test_lru_cache (tests.test_buddai.TestBuddAICore.test_lru_cache) ... ok
+test_modular_plan (tests.test_buddai.TestBuddAICore.test_modular_plan) ... ok
+test_module_detection (tests.test_buddai.TestBuddAICore.test_module_detection) ... ok
+test_rapid_session_creation (tests.test_buddai.TestBuddAICore.test_rapid_session_creation) ... ok
+test_repo_isolation (tests.test_buddai.TestBuddAICore.test_repo_isolation) ... ok
+test_repository_indexing (tests.test_buddai.TestBuddAICore.test_repository_indexing) ... ok
+test_schedule_awareness (tests.test_buddai.TestBuddAICore.test_schedule_awareness) ... ok
+test_search_query_safety (tests.test_buddai.TestBuddAICore.test_search_query_safety) ... ok
+test_session_export (tests.test_buddai.TestBuddAICore.test_session_export) ... ok
+test_session_management (tests.test_buddai.TestBuddAICore.test_session_management) ... ok
+test_sql_injection_prevention (tests.test_buddai.TestBuddAICore.test_sql_injection_prevention) ... ok
+test_upload_security (tests.test_buddai.TestBuddAICore.test_upload_security) ... ok
+test_websocket_logic (tests.test_buddai.TestBuddAICore.test_websocket_logic) ... ok
+test_calculate_confidence_high (tests.test_buddai_confidence.TestConfidenceScorer.test_calculate_confidence_high)
+Test a high confidence scenario (Success + Matches) ... ok
+test_calculate_confidence_low (tests.test_buddai_confidence.TestConfidenceScorer.test_calculate_confidence_low)
+Test a low confidence scenario (Validation Failure) ... ok
+test_pattern_familiarity (tests.test_buddai_confidence.TestConfidenceScorer.test_pattern_familiarity)
+Test pattern matching logic ... ok
+test_should_escalate_thresholds (tests.test_buddai_confidence.TestConfidenceScorer.test_should_escalate_thresholds)
+Test flagging logic at specific boundaries ... ok
+test_validation_scoring_penalties (tests.test_buddai_confidence.TestConfidenceScorer.test_validation_scoring_penalties)
+Test that warnings reduce score but don't zero it ... ok
+test_end_to_end_validation_fix (tests.test_buddai_integration.TestBuddAIIntegration.test_end_to_end_validation_fix)
+Test that bad code generated by LLM is caught and fixed ... ok
+test_extract_modules (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_extract_modules)
+Verify module extraction logic ... ok
+test_method_annotations (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_method_annotations)
+Verify type hints exist on key methods ... ok
+test_routing_complex_request (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_complex_request)
+Test that complex requests route to modular build ... ok
+test_routing_forced_model (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_forced_model)
+Test that force_model overrides other logic ... ok
+test_routing_search_query (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_search_query)
+Test that search queries route to repository search ... ok
+test_routing_simple_question (tests.test_buddai_v3_2.TestBuddAITypesAndLogic.test_routing_simple_question)
+Test that simple questions route to the FAST model ... ok
+test_confidence_high (tests.test_confidence.TestConfidence.test_confidence_high)
+Known good code → should score >70% ... ok
+test_confidence_low (tests.test_confidence.TestConfidence.test_confidence_low)
+Edge case code → should score <70% ... ok
+test_threshold_detection (tests.test_confidence.TestConfidence.test_threshold_detection)
+Verify escalation trigger logic ... ok
+test_detect_gratitude (tests.test_conversation_protocol.TestConversationProtocol.test_detect_gratitude) ... ok
+test_detect_greetings (tests.test_conversation_protocol.TestConversationProtocol.test_detect_greetings) ... ok
+test_ignore_technical_requests (tests.test_conversation_protocol.TestConversationProtocol.test_ignore_technical_requests) ... ok
+test_create_project_programmatically (tests.test_conversational_integration.TestConversationalIntegration.test_create_project_programmatically)
+Test creating project programmatically ... ok
+test_current_project_tracking (tests.test_conversational_integration.TestConversationalIntegration.test_current_project_tracking)
+Test tracking current project ... ok
+test_detect_idea_exploration (tests.test_conversational_integration.TestConversationalIntegration.test_detect_idea_exploration)
+Test detecting idea exploration ... ok
+test_detect_new_project_intent (tests.test_conversational_integration.TestConversationalIntegration.test_detect_new_project_intent)
+Test detecting new project intent ... ok
+test_greet_uses_personality (tests.test_conversational_integration.TestConversationalIntegration.test_greet_uses_personality)
+Test greeting uses personality ... ok
+test_intent_detection_robotics_domain (tests.test_conversational_integration.TestConversationalIntegration.test_intent_detection_robotics_domain)
+Test detecting robotics domain ... ok
+test_personality_initialized (tests.test_conversational_integration.TestConversationalIntegration.test_personality_initialized)
+Test personality is initialized ... ok
+test_project_memory_initialized (tests.test_conversational_integration.TestConversationalIntegration.test_project_memory_initialized)
+Test project memory is initialized ... ok
+test_save_conversation_to_project (tests.test_conversational_integration.TestConversationalIntegration.test_save_conversation_to_project)
+Test saving conversation to project ... ok
+test_search_projects (tests.test_conversational_integration.TestConversationalIntegration.test_search_projects)
+Test searching projects ... ok
+test_default_verbosity_is_conversational (tests.test_conversational_verification.TestConversationalSettings.test_default_verbosity_is_conversational)
+Verify default verbosity is conversational. ... ok
+test_execution_mode_is_conversational (tests.test_conversational_verification.TestConversationalSettings.test_execution_mode_is_conversational)
+Verify execution modes are conversational. ... ok
+test_stress_mode_is_conversational (tests.test_conversational_verification.TestConversationalSettings.test_stress_mode_is_conversational)
+Verify stress mode is no longer code-only. ... ok
+test_anti_patterns_loaded (tests.test_cpp_skill.TestCPPSkill.test_anti_patterns_loaded) ... ok
+test_best_practices (tests.test_cpp_skill.TestCPPSkill.test_best_practices) ... ok
+test_get_template_arduino (tests.test_cpp_skill.TestCPPSkill.test_get_template_arduino) ... ok
+test_get_template_class (tests.test_cpp_skill.TestCPPSkill.test_get_template_class) ... ok
+test_initialization (tests.test_cpp_skill.TestCPPSkill.test_initialization) ... ok
+test_patterns_loaded (tests.test_cpp_skill.TestCPPSkill.test_patterns_loaded) ... ok
+test_supports_file (tests.test_cpp_skill.TestCPPSkill.test_supports_file) ... ok
+test_validate_blocking_delay (tests.test_cpp_skill.TestCPPSkill.test_validate_blocking_delay) ... ok
+test_validate_buffer_overflow (tests.test_cpp_skill.TestCPPSkill.test_validate_buffer_overflow) ... ok
+test_validate_good_code (tests.test_cpp_skill.TestCPPSkill.test_validate_good_code) ... ok
+test_validate_null_usage (tests.test_cpp_skill.TestCPPSkill.test_validate_null_usage) ... ok
+test_validate_raw_new (tests.test_cpp_skill.TestCPPSkill.test_validate_raw_new) ... ok
+test_anti_patterns_loaded (tests.test_css_skill.TestCSSSkill.test_anti_patterns_loaded)
+Test that anti-patterns are loaded ... ok
+test_get_template_flexbox (tests.test_css_skill.TestCSSSkill.test_get_template_flexbox)
+Test getting flexbox template ... ok
+test_get_template_grid (tests.test_css_skill.TestCSSSkill.test_get_template_grid)
+Test getting grid template ... ok
+test_get_template_reset (tests.test_css_skill.TestCSSSkill.test_get_template_reset)
+Test getting CSS reset template ... ok
+test_get_template_variables (tests.test_css_skill.TestCSSSkill.test_get_template_variables)
+Test getting variables template ... ok
+test_initialization (tests.test_css_skill.TestCSSSkill.test_initialization)
+Test CSS skill initializes correctly ... ok
+test_modern_features (tests.test_css_skill.TestCSSSkill.test_modern_features)
+Test modern CSS features list ... ok
+test_patterns_loaded (tests.test_css_skill.TestCSSSkill.test_patterns_loaded)
+Test that patterns are loaded ... ok
+test_performance_tips (tests.test_css_skill.TestCSSSkill.test_performance_tips)
+Test performance tips are provided ... ok
+test_responsive_breakpoints (tests.test_css_skill.TestCSSSkill.test_responsive_breakpoints)
+Test responsive breakpoints are defined ... ok
+test_supports_file (tests.test_css_skill.TestCSSSkill.test_supports_file)
+Test file extension detection ... ok
+test_validate_absolute_fonts (tests.test_css_skill.TestCSSSkill.test_validate_absolute_fonts)
+Test validation catches absolute font sizes ... ok
+test_validate_excessive_important (tests.test_css_skill.TestCSSSkill.test_validate_excessive_important)
+Test validation catches excessive !important ... ok
+test_validate_good_css (tests.test_css_skill.TestCSSSkill.test_validate_good_css)
+Test validation passes for modern CSS ... ok
+test_validate_suggests_modern_layout (tests.test_css_skill.TestCSSSkill.test_validate_suggests_modern_layout)
+Test validation suggests modern layouts ... ok
+test_analyze_project (tests.test_documentation_workflow.TestDocumentationWorkflow.test_analyze_project)
+Test project analysis ... ok
+test_detect_high_confidence (tests.test_documentation_workflow.TestDocumentationWorkflow.test_detect_high_confidence)
+Test high confidence detection ... ok
+test_detect_low_confidence (tests.test_documentation_workflow.TestDocumentationWorkflow.test_detect_low_confidence)
+Test low confidence detection ... ok
+test_detect_medium_confidence (tests.test_documentation_workflow.TestDocumentationWorkflow.test_detect_medium_confidence)
+Test medium confidence detection ... ok
+test_detect_project_type_javascript (tests.test_documentation_workflow.TestDocumentationWorkflow.test_detect_project_type_javascript)
+Test JavaScript project detection ... ok
+test_detect_project_type_python (tests.test_documentation_workflow.TestDocumentationWorkflow.test_detect_project_type_python)
+Test Python project detection ... ok
+test_find_source_files (tests.test_documentation_workflow.TestDocumentationWorkflow.test_find_source_files)
+Test finding source files ... ok
+test_generate_architecture (tests.test_documentation_workflow.TestDocumentationWorkflow.test_generate_architecture)
+Test architecture doc generation ... ok
+test_generate_contributing (tests.test_documentation_workflow.TestDocumentationWorkflow.test_generate_contributing)
+Test contributing guide generation ... ok
+test_generate_readme (tests.test_documentation_workflow.TestDocumentationWorkflow.test_generate_readme)
+Test README generation ... ok
+test_initialization (tests.test_documentation_workflow.TestDocumentationWorkflow.test_initialization)
+Test workflow initializes ... ok
+test_plan_creates_steps (tests.test_documentation_workflow.TestDocumentationWorkflow.test_plan_creates_steps)
+Test plan creates workflow steps ... ok
+test_projects_list_empty (tests.test_executive_projects.TestExecutiveProjects.test_projects_list_empty)
+Test listing projects when none exist ... ERROR
+test_projects_list_populated (tests.test_executive_projects.TestExecutiveProjects.test_projects_list_populated)
+Test listing projects with existing data ... ERROR
+test_projects_new_command (tests.test_executive_projects.TestExecutiveProjects.test_projects_new_command)
+Test creating a new project ... ERROR
+test_projects_usage_errors (tests.test_executive_projects.TestExecutiveProjects.test_projects_usage_errors)
+Test invalid command usage ... ERROR
+test_executive_clear_current_session (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_clear_current_session) ... ok
+test_executive_delete_session (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_delete_session) ... ok
+test_executive_get_session_export_data (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_get_session_export_data) ... ok
+test_executive_get_sessions (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_get_sessions) ... ok
+test_executive_import_session_json_invalid (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_import_session_json_invalid) ... ok
+test_executive_import_session_json_valid (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_import_session_json_valid) ... ok
+test_executive_load_session (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_load_session) ... ok
+test_executive_rename_session (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_rename_session) ... ok
+test_executive_reset_gpu (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_reset_gpu) ... ok
+test_executive_slash_backup_failure (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_backup_failure) ... ok
+test_executive_slash_correct_empty (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_correct_empty) ... ok
+test_executive_slash_debug_content (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_debug_content) ... ok
+test_executive_slash_learn_empty (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_learn_empty) ... ok
+test_executive_slash_rules_empty (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_rules_empty) ... ok
+test_executive_slash_skills_empty (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_skills_empty) ... ok
+test_executive_slash_skills_list (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_skills_list) ... ok
+test_executive_slash_teach_empty (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_slash_teach_empty) ... ok
+test_executive_start_new_session (tests.test_extended_coverage_2.TestExtendedCoverage2.test_executive_start_new_session) ... ok
+test_analyze_failure (tests.test_extended_features.TestExtendedFeatures.test_analyze_failure)
+Test failure analysis logic (DB read) ... ok
+test_apply_style_signature_regex (tests.test_extended_features.TestExtendedFeatures.test_apply_style_signature_regex)
+Test regex replacement based on learned rules ... ok
+test_check_skills_trigger (tests.test_extended_features.TestExtendedFeatures.test_check_skills_trigger)
+Test skill triggering mechanism ... ok
+test_clear_session (tests.test_extended_features.TestExtendedFeatures.test_clear_session)
+Test clearing context messages ... ok
+test_get_recent_context_json (tests.test_extended_features.TestExtendedFeatures.test_get_recent_context_json)
+Test context retrieval as JSON ... ok
+test_gpu_reset (tests.test_extended_features.TestExtendedFeatures.test_gpu_reset)
+Test GPU reset delegation ... ok
+test_hardware_detection_extended (tests.test_extended_features.TestExtendedFeatures.test_hardware_detection_extended)
+Ensure hardware detection delegates to profile ... ok
+test_learned_rules_retrieval (tests.test_extended_features.TestExtendedFeatures.test_learned_rules_retrieval)
+Test retrieval of high-confidence rules ... ok
+test_log_compilation (tests.test_extended_features.TestExtendedFeatures.test_log_compilation)
+Test logging compilation results to DB ... ok
+test_personality_forge_config (tests.test_extended_features.TestExtendedFeatures.test_personality_forge_config)
+Verify Forge Theory constants are loaded from personality ... ok
+test_save_correction (tests.test_extended_features.TestExtendedFeatures.test_save_correction)
+Test saving user corrections to DB ... ok
+test_slash_command_metrics (tests.test_extended_features.TestExtendedFeatures.test_slash_command_metrics)
+Test /metrics command output ... ok
+test_slash_command_status (tests.test_extended_features.TestExtendedFeatures.test_slash_command_status)
+Test /status command output ... ok
+test_slash_command_teach (tests.test_extended_features.TestExtendedFeatures.test_slash_command_teach)
+Test /teach command saves rule to DB ... ok
+test_style_summary (tests.test_extended_features.TestExtendedFeatures.test_style_summary)
+Test retrieval of style preferences from DB ... ok
+test_base64_tool (tests.test_extra_skills.TestExtraSkills.test_base64_tool) ... ok
+test_color_tool (tests.test_extra_skills.TestExtraSkills.test_color_tool) ... ok
+test_file_search_tool (tests.test_extra_skills.TestExtraSkills.test_file_search_tool) ... ok
+test_hash_tool (tests.test_extra_skills.TestExtraSkills.test_hash_tool) ... ok
+test_json_tool (tests.test_extra_skills.TestExtraSkills.test_json_tool) ... ok
+test_regex_tool (tests.test_extra_skills.TestExtraSkills.test_regex_tool) ... ok
+test_escalate_claude (tests.test_fallback_client.TestFallbackClient.test_escalate_claude)
+Test successful escalation to Claude ... ok
+test_escalate_no_key (tests.test_fallback_client.TestFallbackClient.test_escalate_no_key)
+Test behavior when API key is missing ... ok
+test_escalate_openai (tests.test_fallback_client.TestFallbackClient.test_escalate_openai)
+Test successful escalation to OpenAI ... ok
+test_escalate_success (tests.test_fallback_client.TestFallbackClient.test_escalate_success)
+Test successful escalation to Gemini ... ok
+test_extract_learning_patterns (tests.test_fallback_client.TestFallbackClient.test_extract_learning_patterns)
+Test extraction of patterns from code diffs ... ok
+test_fallback_logging (tests.test_fallback_logging.TestFallbackLogging.test_fallback_logging)
+Test that fallback prompts are written to log file ... ok
+test_logs_command (tests.test_fallback_logging.TestFallbackLogging.test_logs_command)
+Test /logs command retrieves content ... ok
+test_fallback_disabled (tests.test_fallback_logic.TestFallbackLogic.test_fallback_disabled)
+Test that standard warning appears when fallback is disabled ... ok
+test_fallback_learning (tests.test_fallback_logic.TestFallbackLogic.test_fallback_learning)
+Test that successful fallback triggers learning ... ok
+test_fallback_triggered (tests.test_fallback_logic.TestFallbackLogic.test_fallback_triggered)
+Test that fallback triggers when enabled and confidence is low ... ok
+test_specific_prompts_used (tests.test_fallback_prompts.TestFallbackPrompts.test_specific_prompts_used)
+Test that configured prompts are used for each model ... ok
+test_executive_chat_schedule_trigger (tests.test_final_coverage.TestFinalCoverage.test_executive_chat_schedule_trigger)
+Test schedule check trigger in chat ... ok
+test_executive_chat_skill_trigger (tests.test_final_coverage.TestFinalCoverage.test_executive_chat_skill_trigger)
+Test skill trigger in chat ... ok
+test_executive_slash_logs_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_logs_command)
+Test /logs command ... ok
+test_executive_slash_save_json_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_save_json_command)
+Test /save json command ... ok
+test_executive_slash_save_md_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_save_md_command)
+Test /save command (default markdown) ... ok
+test_executive_slash_train_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_train_command)
+Test /train command ... ok
+test_executive_slash_unknown_command (tests.test_final_coverage.TestFinalCoverage.test_executive_slash_unknown_command)
+Test unknown slash command ... ok
+test_fine_tuner_prepare_training_data_empty (tests.test_final_coverage.TestFinalCoverage.test_fine_tuner_prepare_training_data_empty)
+Test training data prep with no data ... ok
+test_hardware_profile_detect_arduino (tests.test_final_coverage.TestFinalCoverage.test_hardware_profile_detect_arduino)
+Test detection of Arduino ... ok
+test_hardware_profile_detect_esp32 (tests.test_final_coverage.TestFinalCoverage.test_hardware_profile_detect_esp32)
+Test detection of ESP32 ... ok
+test_metrics_calculate_accuracy_defaults (tests.test_final_coverage.TestFinalCoverage.test_metrics_calculate_accuracy_defaults)
+Test metrics return default structure ... ok
+test_prompt_engine_extract_modules_multiple (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_extract_modules_multiple)
+Test extraction of multiple modules ... ok
+test_prompt_engine_extract_modules_none (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_extract_modules_none)
+Test extraction with no modules ... ok
+test_prompt_engine_is_complex_false (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_is_complex_false)
+Test complexity detection for simple requests ... ok
+test_prompt_engine_is_complex_true (tests.test_final_coverage.TestFinalCoverage.test_prompt_engine_is_complex_true)
+Test complexity detection for complex requests ... ok
+test_repo_manager_is_search_query_find (tests.test_final_coverage.TestFinalCoverage.test_repo_manager_is_search_query_find)
+Test search query detection: find ... ok
+test_repo_manager_is_search_query_how_to (tests.test_final_coverage.TestFinalCoverage.test_repo_manager_is_search_query_how_to)
+Test search query detection: how to ... ok
+test_repo_manager_search_repositories_mock (tests.test_final_coverage.TestFinalCoverage.test_repo_manager_search_repositories_mock)
+Test search repository execution ... ok
+test_shadow_engine_get_suggestions_mock (tests.test_final_coverage.TestFinalCoverage.test_shadow_engine_get_suggestions_mock)
+Test shadow engine suggestions ... ok
+test_validator_auto_fix_simple (tests.test_final_coverage.TestFinalCoverage.test_validator_auto_fix_simple)
+Test auto-fix logic ... ok
+test_validator_validate_issues (tests.test_final_coverage.TestFinalCoverage.test_validator_validate_issues)
+Test validation returns issues for empty code or specific patterns ... ok
+test_validator_validate_valid_code (tests.test_final_coverage.TestFinalCoverage.test_validator_validate_valid_code)
+Test validation of valid code ... ok
+test_missing_smoothing (tests.test_forge_theory_validator.TestForgeTheoryValidator.test_missing_smoothing)
+Should flag direct writes in motor context ... ok
+test_no_motor_context (tests.test_forge_theory_validator.TestForgeTheoryValidator.test_no_motor_context)
+Should ignore code unrelated to motors/servos ... ok
+test_present_smoothing_comment (tests.test_forge_theory_validator.TestForgeTheoryValidator.test_present_smoothing_comment)
+Should accept code with explicit Forge Theory comment ... ok
+test_present_smoothing_formula (tests.test_forge_theory_validator.TestForgeTheoryValidator.test_present_smoothing_formula)
+Should accept code with smoothing formula ... ok
+test_accessibility_checklist (tests.test_html_skill.TestHTMLSkill.test_accessibility_checklist)
+Test accessibility checklist exists ... ok
+test_anti_patterns_loaded (tests.test_html_skill.TestHTMLSkill.test_anti_patterns_loaded)
+Test that anti-patterns are loaded ... ok
+test_best_practices (tests.test_html_skill.TestHTMLSkill.test_best_practices)
+Test best practices are defined ... ok
+test_get_template_basic (tests.test_html_skill.TestHTMLSkill.test_get_template_basic)
+Test getting basic template ... ok
+test_get_template_form (tests.test_html_skill.TestHTMLSkill.test_get_template_form)
+Test getting form template ... ok
+test_get_template_invalid (tests.test_html_skill.TestHTMLSkill.test_get_template_invalid)
+Test getting non-existent template ... ok
+test_initialization (tests.test_html_skill.TestHTMLSkill.test_initialization)
+Test HTML skill initializes correctly ... ok
+test_patterns_loaded (tests.test_html_skill.TestHTMLSkill.test_patterns_loaded)
+Test that patterns are loaded ... ok
+test_seo_checklist (tests.test_html_skill.TestHTMLSkill.test_seo_checklist)
+Test SEO checklist exists ... ok
+test_supports_file (tests.test_html_skill.TestHTMLSkill.test_supports_file)
+Test file extension detection ... ok
+test_validate_deprecated_tags (tests.test_html_skill.TestHTMLSkill.test_validate_deprecated_tags)
+Test validation catches deprecated tags ... ok
+test_validate_good_html (tests.test_html_skill.TestHTMLSkill.test_validate_good_html)
+Test validation passes for good HTML ... ok
+test_validate_missing_alt (tests.test_html_skill.TestHTMLSkill.test_validate_missing_alt)
+Test validation catches images without alt ... ok
+test_validate_missing_doctype (tests.test_html_skill.TestHTMLSkill.test_validate_missing_doctype)
+Test validation catches missing DOCTYPE ... ok
+test_chat_flow (tests.test_integration.TestBuddAIIntegration.test_chat_flow)
+POST /api/chat returns response ... ok
+test_health_check (tests.test_integration.TestBuddAIIntegration.test_health_check)
+GET / returns 200 and status ... ok
+test_multi_user_isolation_api (tests.test_integration.TestBuddAIIntegration.test_multi_user_isolation_api)
+Verify data isolation between users via API headers ... ok
+test_session_lifecycle_api (tests.test_integration.TestBuddAIIntegration.test_session_lifecycle_api)
+Test full session CRUD via API ... ok
+test_upload_api (tests.test_integration.TestBuddAIIntegration.test_upload_api)
+Test file upload endpoint ... ok
+test_anti_patterns_loaded (tests.test_javascript_skill.TestJavaScriptSkill.test_anti_patterns_loaded)
+Test that anti-patterns are loaded ... ok
+test_common_pitfalls (tests.test_javascript_skill.TestJavaScriptSkill.test_common_pitfalls)
+Test common pitfalls are documented ... ok
+test_es6_features (tests.test_javascript_skill.TestJavaScriptSkill.test_es6_features)
+Test ES6+ features list ... ok
+test_get_template_array_operations (tests.test_javascript_skill.TestJavaScriptSkill.test_get_template_array_operations)
+Test getting array operations template ... ok
+test_get_template_async_fetch (tests.test_javascript_skill.TestJavaScriptSkill.test_get_template_async_fetch)
+Test getting async fetch template ... ok
+test_get_template_dom_manipulation (tests.test_javascript_skill.TestJavaScriptSkill.test_get_template_dom_manipulation)
+Test getting DOM manipulation template ... ok
+test_initialization (tests.test_javascript_skill.TestJavaScriptSkill.test_initialization)
+Test JavaScript skill initializes correctly ... ok
+test_patterns_loaded (tests.test_javascript_skill.TestJavaScriptSkill.test_patterns_loaded)
+Test that patterns are loaded ... ok
+test_performance_tips (tests.test_javascript_skill.TestJavaScriptSkill.test_performance_tips)
+Test performance tips are provided ... ok
+test_supports_file (tests.test_javascript_skill.TestJavaScriptSkill.test_supports_file)
+Test file extension detection ... ok
+test_validate_eval_usage (tests.test_javascript_skill.TestJavaScriptSkill.test_validate_eval_usage)
+Test validation catches eval usage ... ok
+test_validate_good_javascript (tests.test_javascript_skill.TestJavaScriptSkill.test_validate_good_javascript)
+Test validation passes for modern JavaScript ... ok
+test_validate_loose_equality (tests.test_javascript_skill.TestJavaScriptSkill.test_validate_loose_equality)
+Test validation catches loose equality ... ok
+test_validate_missing_error_handling (tests.test_javascript_skill.TestJavaScriptSkill.test_validate_missing_error_handling)
+Test validation catches missing error handling in async code ... ok
+test_validate_var_usage (tests.test_javascript_skill.TestJavaScriptSkill.test_validate_var_usage)
+Test validation catches var usage ... ok
+test_get_all_skills (tests.test_language_registry.TestLanguageRegistry.test_get_all_skills)
+Test retrieving all skills ... ok
+test_get_best_practices (tests.test_language_registry.TestLanguageRegistry.test_get_best_practices)
+Test getting best practices through registry ... ok
+test_get_patterns (tests.test_language_registry.TestLanguageRegistry.test_get_patterns)
+Test getting patterns through registry ... ok
+test_get_skill_by_name (tests.test_language_registry.TestLanguageRegistry.test_get_skill_by_name)
+Test getting skill by name ... ok
+test_get_skill_for_file (tests.test_language_registry.TestLanguageRegistry.test_get_skill_for_file)
+Test getting skill for filename ... ok
+test_get_supported_extensions (tests.test_language_registry.TestLanguageRegistry.test_get_supported_extensions)
+Test getting supported extensions ... ok
+test_get_supported_languages (tests.test_language_registry.TestLanguageRegistry.test_get_supported_languages)
+Test getting supported languages ... ok
+test_get_template (tests.test_language_registry.TestLanguageRegistry.test_get_template)
+Test getting template through registry ... ok
+test_global_registry_singleton (tests.test_language_registry.TestLanguageRegistry.test_global_registry_singleton)
+Test that global registry is a singleton ... ok
+test_initialization (tests.test_language_registry.TestLanguageRegistry.test_initialization)
+Test registry initializes ... ok
+test_skills_discovered (tests.test_language_registry.TestLanguageRegistry.test_skills_discovered)
+Test that skills are auto-discovered ... ok
+test_validate_code (tests.test_language_registry.TestLanguageRegistry.test_validate_code)
+Test code validation through registry ... ok
+test_dry_run_merge (tests.test_pattern_merger.TestPatternMerger.test_dry_run_merge)
+Test dry run doesn't actually merge ... ok
+test_find_similar_patterns (tests.test_pattern_merger.TestPatternMerger.test_find_similar_patterns)
+Test finding similar pattern groups ... ok
+test_jaccard_similarity (tests.test_pattern_merger.TestPatternMerger.test_jaccard_similarity)
+Test Jaccard similarity calculation ... ok
+test_levenshtein_distance (tests.test_pattern_merger.TestPatternMerger.test_levenshtein_distance)
+Test Levenshtein distance calculation ... ok
+test_levenshtein_similarity (tests.test_pattern_merger.TestPatternMerger.test_levenshtein_similarity)
+Test Levenshtein similarity ... ok
+test_merge_history_created (tests.test_pattern_merger.TestPatternMerger.test_merge_history_created)
+Test that merge history is recorded ... ok
+test_merge_pattern_group (tests.test_pattern_merger.TestPatternMerger.test_merge_pattern_group)
+Test merging a group of patterns ... ok
+test_merge_stats (tests.test_pattern_merger.TestPatternMerger.test_merge_stats)
+Test merge statistics ... ok
+test_no_similar_patterns (tests.test_pattern_merger.TestPatternMerger.test_no_similar_patterns)
+Test behavior when no similar patterns exist ... ok
+test_real_merge_all (tests.test_pattern_merger.TestPatternMerger.test_real_merge_all)
+Test real merging of all similar patterns ... ok
+test_identify_prune_candidates_low_score (tests.test_pattern_pruner.TestPatternPruner.test_identify_prune_candidates_low_score)
+Test that low scoring patterns are identified ... ok
+test_prune_patterns_real (tests.test_pattern_pruner.TestPatternPruner.test_prune_patterns_real)
+Test actual pruning (backup + delete) ... ok
+test_restore_pattern (tests.test_pattern_pruner.TestPatternPruner.test_restore_pattern)
+Test restoring a pattern from backup ... ok
+test_safety_filter_favorites (tests.test_pattern_pruner.TestPatternPruner.test_safety_filter_favorites)
+Test that favorited patterns are protected ... ok
+test_safety_filter_recent (tests.test_pattern_pruner.TestPatternPruner.test_safety_filter_recent)
+Test that recent patterns are protected ... ok
+test_age_score_decreases_with_time (tests.test_pattern_scorer.TestPatternScorer.test_age_score_decreases_with_time)
+Test that age score uses exponential decay ... ok
+test_get_bottom_patterns (tests.test_pattern_scorer.TestPatternScorer.test_get_bottom_patterns)
+Test getting lowest scored patterns ... ok
+test_get_top_patterns (tests.test_pattern_scorer.TestPatternScorer.test_get_top_patterns)
+Test getting highest scored patterns ... ok
+test_high_usage_scores_higher (tests.test_pattern_scorer.TestPatternScorer.test_high_usage_scores_higher)
+Test that frequently used patterns score higher ... ok
+test_recent_pattern_scores_higher (tests.test_pattern_scorer.TestPatternScorer.test_recent_pattern_scores_higher)
+Test that recent patterns score higher than old ones ... ok
+test_score_all_patterns (tests.test_pattern_scorer.TestPatternScorer.test_score_all_patterns)
+Test scoring all patterns ... ok
+test_score_distribution (tests.test_pattern_scorer.TestPatternScorer.test_score_distribution)
+Test score distribution calculation ... ok
+test_score_pattern_exists (tests.test_pattern_scorer.TestPatternScorer.test_score_pattern_exists)
+Test scoring an existing pattern ... ok
+test_score_pattern_not_found (tests.test_pattern_scorer.TestPatternScorer.test_score_pattern_not_found)
+Test scoring non-existent pattern ... ok
+test_update_decay_constant (tests.test_pattern_scorer.TestPatternScorer.test_update_decay_constant)
+Test updating decay constant ... ok
+test_conversation_summary (tests.test_personality.TestBuddAIPersonality.test_conversation_summary)
+Test getting conversation summary ... ok
+test_detect_3d_printing_domain (tests.test_personality.TestBuddAIPersonality.test_detect_3d_printing_domain)
+Test detecting 3D printing domain ... ok
+test_detect_robotics_domain (tests.test_personality.TestBuddAIPersonality.test_detect_robotics_domain)
+Test detecting robotics domain ... ok
+test_generate_clarifying_questions_robotics (tests.test_personality.TestBuddAIPersonality.test_generate_clarifying_questions_robotics)
+Test generating questions for robotics ... ok
+test_greet_generates_message (tests.test_personality.TestBuddAIPersonality.test_greet_generates_message)
+Test greeting generation ... ok
+test_initialization (tests.test_personality.TestBuddAIPersonality.test_initialization)
+Test personality initializes ... ok
+test_remember_conversation (tests.test_personality.TestBuddAIPersonality.test_remember_conversation)
+Test conversation memory ... ok
+test_respond_naturally_greeting (tests.test_personality.TestBuddAIPersonality.test_respond_naturally_greeting)
+Test natural response to greeting ... ok
+test_respond_naturally_idea_exploration (tests.test_personality.TestBuddAIPersonality.test_respond_naturally_idea_exploration)
+Test natural response to idea ... ok
+test_understand_intent_continue_project (tests.test_personality.TestBuddAIPersonality.test_understand_intent_continue_project)
+Test detecting continuation intent ... ok
+test_understand_intent_greeting (tests.test_personality.TestBuddAIPersonality.test_understand_intent_greeting)
+Test detecting greetings ... ok
+test_understand_intent_how_are_you (tests.test_personality.TestBuddAIPersonality.test_understand_intent_how_are_you)
+Test detecting personal status questions ... ok
+test_understand_intent_idea_exploration (tests.test_personality.TestBuddAIPersonality.test_understand_intent_idea_exploration)
+Test detecting idea exploration ... ok
+test_understand_intent_new_one (tests.test_personality.TestBuddAIPersonality.test_understand_intent_new_one)
+Test detecting new project from 'new one' ... ok
+test_understand_intent_new_project (tests.test_personality.TestBuddAIPersonality.test_understand_intent_new_project)
+Test detecting new project intent ... ok
+test_understand_intent_question (tests.test_personality.TestBuddAIPersonality.test_understand_intent_question)
+Test detecting questions ... ok
+test_advanced_features (tests.test_personality.TestPersonalityManager.test_advanced_features)
+Verify Deep Key Access ... ok
+test_communication_style (tests.test_personality.TestPersonalityManager.test_communication_style)
+Verify Communication & Phrases ... ok
+test_forge_theory (tests.test_personality.TestPersonalityManager.test_forge_theory)
+Verify Forge Theory Configuration ... ok
+test_identity_meta (tests.test_personality.TestPersonalityManager.test_identity_meta)
+Verify Identity & Meta ... ok
+test_interaction_modes (tests.test_personality.TestPersonalityManager.test_interaction_modes)
+Verify Interaction Modes ... ok
+test_schedule_logic (tests.test_personality.TestPersonalityManager.test_schedule_logic)
+Test Schedule & Work Cycles ... ok
+test_technical_preferences (tests.test_personality.TestPersonalityManager.test_technical_preferences)
+Verify Technical Preferences ... ok
+test_wind_down_mode_configuration (tests.test_personality_wind_down.TestPersonalityWindDown.test_wind_down_mode_configuration)
+Verify wind_down mode loads new note and interaction style ... ok
+test_add_conversation (tests.test_project_memory.TestProject.test_add_conversation)
+Test adding conversation ... ok
+test_add_decision (tests.test_project_memory.TestProject.test_add_decision)
+Test adding decision ... ok
+test_add_file (tests.test_project_memory.TestProject.test_add_file)
+Test adding file ... ok
+test_add_next_step (tests.test_project_memory.TestProject.test_add_next_step)
+Test adding next step ... ok
+test_add_tag (tests.test_project_memory.TestProject.test_add_tag)
+Test adding tag ... ok
+test_complete_step (tests.test_project_memory.TestProject.test_complete_step)
+Test completing a step ... ok
+test_from_dict (tests.test_project_memory.TestProject.test_from_dict)
+Test creating from dictionary ... ok
+test_project_creation (tests.test_project_memory.TestProject.test_project_creation)
+Test creating a project ... ok
+test_to_dict (tests.test_project_memory.TestProject.test_to_dict)
+Test converting to dictionary ... ok
+test_delete_project (tests.test_project_memory.TestProjectMemory.test_delete_project)
+Test deleting project ... ok
+test_get_by_project_type (tests.test_project_memory.TestProjectMemory.test_get_by_project_type)
+Test getting projects by type ... ok
+test_get_recent_projects (tests.test_project_memory.TestProjectMemory.test_get_recent_projects)
+Test getting recent projects ... ok
+test_global_instance (tests.test_project_memory.TestProjectMemory.test_global_instance)
+Test global instance is singleton ... ok
+test_list_by_status (tests.test_project_memory.TestProjectMemory.test_list_by_status)
+Test listing by status ... ok
+test_list_projects (tests.test_project_memory.TestProjectMemory.test_list_projects)
+Test listing projects ... ok
+test_save_and_load_project (tests.test_project_memory.TestProjectMemory.test_save_and_load_project)
+Test saving and loading project ... ok
+test_search_by_type (tests.test_project_memory.TestProjectMemory.test_search_by_type)
+Test searching by project type ... ok
+test_search_exact_match (tests.test_project_memory.TestProjectMemory.test_search_exact_match)
+Test exact name search ... ok
+test_search_partial_match (tests.test_project_memory.TestProjectMemory.test_search_partial_match)
+Test partial name search ... ok
+test_anti_patterns_loaded (tests.test_python_skill.TestPythonSkill.test_anti_patterns_loaded)
+Test that anti-patterns are loaded ... ok
+test_get_template_class (tests.test_python_skill.TestPythonSkill.test_get_template_class)
+Test getting class template ... ok
+test_get_template_script (tests.test_python_skill.TestPythonSkill.test_get_template_script)
+Test getting basic script template ... ok
+test_initialization (tests.test_python_skill.TestPythonSkill.test_initialization)
+Test Python skill initializes correctly ... ok
+test_patterns_loaded (tests.test_python_skill.TestPythonSkill.test_patterns_loaded)
+Test that patterns are loaded ... ok
+test_supports_file (tests.test_python_skill.TestPythonSkill.test_supports_file)
+Test file extension detection ... ok
+test_validate_bare_except (tests.test_python_skill.TestPythonSkill.test_validate_bare_except)
+Test validation catches bare except clauses ... ok
+test_validate_global_variables (tests.test_python_skill.TestPythonSkill.test_validate_global_variables)
+Test validation warns about global variables ... ok
+test_validate_good_code (tests.test_python_skill.TestPythonSkill.test_validate_good_code)
+Test validation passes for good Python code ... ok
+test_validate_mutable_default (tests.test_python_skill.TestPythonSkill.test_validate_mutable_default)
+Test validation catches mutable default arguments ... ok
+test_validate_print_statements (tests.test_python_skill.TestPythonSkill.test_validate_print_statements)
+Test validation warns about print statements ... ok
+test_arduino_validator (tests.test_refactored_validators.TestRefactoredValidators.test_arduino_validator) ... ok
+test_esp32_adc_resolution (tests.test_refactored_validators.TestRefactoredValidators.test_esp32_adc_resolution) ... ok
+test_esp32_validator (tests.test_refactored_validators.TestRefactoredValidators.test_esp32_validator) ... ok
+test_forge_theory_validator (tests.test_refactored_validators.TestRefactoredValidators.test_forge_theory_validator) ... ok
+test_memory_validator (tests.test_refactored_validators.TestRefactoredValidators.test_memory_validator) ... ok
+test_motor_pwm_conflict (tests.test_refactored_validators.TestRefactoredValidators.test_motor_pwm_conflict) ... ok
+test_motor_validator (tests.test_refactored_validators.TestRefactoredValidators.test_motor_validator) ... ok
+test_servo_validator (tests.test_refactored_validators.TestRefactoredValidators.test_servo_validator) ... ok
+test_style_monolithic_loop (tests.test_refactored_validators.TestRefactoredValidators.test_style_monolithic_loop) ... ok
+test_style_validator (tests.test_refactored_validators.TestRefactoredValidators.test_style_validator) ... ok
+test_timing_validator (tests.test_refactored_validators.TestRefactoredValidators.test_timing_validator) ... ok
+test_generic_secret (tests.test_security_validator.TestSecurityValidator.test_generic_secret) ... ok
+test_openai_key_detection (tests.test_security_validator.TestSecurityValidator.test_openai_key_detection) ... ok
+test_wifi_credentials (tests.test_security_validator.TestSecurityValidator.test_wifi_credentials) ... ok
+test_calculator_logic (tests.test_skills.TestSkills.test_calculator_logic)
+Verify calculator skill math ... ok
+test_code_analyzer (tests.test_skills.TestSkills.test_code_analyzer)
+Verify code analyzer skill ... ok
+test_doc_generator (tests.test_skills.TestSkills.test_doc_generator)
+Verify doc generator skill ... ok
+test_file_search_tool (tests.test_skills.TestSkills.test_file_search_tool)
+Verify file search skill ... ok
+test_project_scaffolder (tests.test_skills.TestSkills.test_project_scaffolder)
+Verify project scaffolder skill ... ok
+test_registry_loading (tests.test_skills.TestSkills.test_registry_loading)
+Ensure skills are discovered and loaded ... ok
+test_test_generator (tests.test_skills.TestSkills.test_test_generator)
+Verify test generator skill ... ok
+test_timer_parsing (tests.test_skills.TestSkills.test_timer_parsing)
+Verify timer parses duration correctly ... ok
+test_weather_mock (tests.test_skills.TestSkills.test_weather_mock)
+Verify weather skill with mocked network ... ok
+test_blocking_delay_in_motor_code (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_blocking_delay_in_motor_code)
+Should warn about delay() in motor loops ... ok
+test_broken_debounce_logic (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_broken_debounce_logic)
+Should detect type mismatch in debounce logic ... ok
+test_long_safety_timeout (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_long_safety_timeout)
+Should warn if timeout is too long (>5s) ... ok
+test_missing_safety_timeout (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_missing_safety_timeout)
+Should error on missing safety timeout for motors ... ok
+test_static_timer_init (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_static_timer_init)
+Should detect static timers initialized with millis() ... ok
+test_unnecessary_debounce (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_unnecessary_debounce)
+Should flag debounce logic in analog/battery contexts ... ok
+test_valid_safety_timeout (tests.test_timing_safety_validator.TestTimingSafetyValidator.test_valid_safety_timeout)
+Should accept code with valid timeout logic ... ok
+test_cmd_close_project_none (tests.test_v5_expansion.TestV5Expansion.test_cmd_close_project_none)
+14. Test closing project when none open ... ok
+test_cmd_save_project_none (tests.test_v5_expansion.TestV5Expansion.test_cmd_save_project_none)
+15. Test saving project when none open ... ok
+test_cmd_timeline_none (tests.test_v5_expansion.TestV5Expansion.test_cmd_timeline_none)
+16. Test timeline when none open ... ok
+test_export_session_json_empty (tests.test_v5_expansion.TestV5Expansion.test_export_session_json_empty)
+17. Test JSON export with empty session ... ERROR
+test_import_session_json_invalid (tests.test_v5_expansion.TestV5Expansion.test_import_session_json_invalid)
+19. Test invalid JSON import raises error ... ok
+test_import_session_json_valid (tests.test_v5_expansion.TestV5Expansion.test_import_session_json_valid)
+18. Test valid JSON session import ... ERROR
+test_initiate_conversation (tests.test_v5_expansion.TestV5Expansion.test_initiate_conversation)
+7. Test conversation initiation calls fast model ... ok
+test_language_invalid_action (tests.test_v5_expansion.TestV5Expansion.test_language_invalid_action)
+5. Test invalid language action ... ok
+test_language_list (tests.test_v5_expansion.TestV5Expansion.test_language_list)
+1. Test /language list command ... ok
+test_language_patterns (tests.test_v5_expansion.TestV5Expansion.test_language_patterns)
+2. Test /language <lang> patterns ... ok
+test_language_practices (tests.test_v5_expansion.TestV5Expansion.test_language_practices)
+3. Test /language <lang> practices ... ok
+test_language_template (tests.test_v5_expansion.TestV5Expansion.test_language_template)
+4. Test /language <lang> template <name> ... ok
+test_record_feedback_negative (tests.test_v5_expansion.TestV5Expansion.test_record_feedback_negative)
+11. Test recording negative feedback triggers analysis ... ERROR
+test_record_feedback_positive (tests.test_v5_expansion.TestV5Expansion.test_record_feedback_positive)
+10. Test recording positive feedback ... ERROR
+test_regenerate_response_not_found (tests.test_v5_expansion.TestV5Expansion.test_regenerate_response_not_found)
+12. Test regeneration when message ID not found ... ERROR
+test_regenerate_response_success (tests.test_v5_expansion.TestV5Expansion.test_regenerate_response_success)
+13. Test successful regeneration ... ERROR
+test_reset_gpu (tests.test_v5_expansion.TestV5Expansion.test_reset_gpu)
+20. Test GPU reset delegation ... ok
+test_scan_style_no_index (tests.test_v5_expansion.TestV5Expansion.test_scan_style_no_index)
+8. Test style scan with no indexed code ... ERROR
+test_scan_style_with_index (tests.test_v5_expansion.TestV5Expansion.test_scan_style_with_index)
+9. Test style scan with indexed code ... ERROR
+test_shadow_suggestions_integration (tests.test_v5_expansion.TestV5Expansion.test_shadow_suggestions_integration)
+6. Test that shadow suggestions are appended to chat response ... ERROR
+test_auto_fix_chain (tests.test_validator_integration.TestValidatorIntegration.test_auto_fix_chain)
+Test applying fixes via the registry ... ok
+test_combined_validation (tests.test_validator_integration.TestValidatorIntegration.test_combined_validation)
+Test multiple validators triggering on one piece of code ... ok
+test_registry_loading (tests.test_validator_integration.TestValidatorIntegration.test_registry_loading)
+Ensure validators are loaded dynamically ... ok
+test_detect_add_feature (tests.test_workflow_detector.TestWorkflowDetector.test_detect_add_feature)
+Test detecting add feature intent ... ok
+test_detect_create_project (tests.test_workflow_detector.TestWorkflowDetector.test_detect_create_project)
+Test detecting create project intent ... ok
+test_detect_fix_bug (tests.test_workflow_detector.TestWorkflowDetector.test_detect_fix_bug)
+Test detecting fix bug intent ... ok
+test_detect_generate_docs (tests.test_workflow_detector.TestWorkflowDetector.test_detect_generate_docs)
+Test detecting generate docs intent ... ok
+test_detect_review_code (tests.test_workflow_detector.TestWorkflowDetector.test_detect_review_code)
+Test detecting review code intent ... ok
+test_detect_unknown_intent (tests.test_workflow_detector.TestWorkflowDetector.test_detect_unknown_intent)
+Test unknown intent returns low confidence ... ok
+test_detect_write_tests (tests.test_workflow_detector.TestWorkflowDetector.test_detect_write_tests)
+Test detecting write tests intent ... ok
+test_detection_patterns_loaded (tests.test_workflow_detector.TestWorkflowDetector.test_detection_patterns_loaded)
+Test detection patterns are loaded ... ok
+test_get_intent_examples (tests.test_workflow_detector.TestWorkflowDetector.test_get_intent_examples)
+Test getting intent examples ... ok
+test_get_supported_intents (tests.test_workflow_detector.TestWorkflowDetector.test_get_supported_intents)
+Test getting supported intents ... ok
+test_global_detector_singleton (tests.test_workflow_detector.TestWorkflowDetector.test_global_detector_singleton)
+Test global detector is singleton ... ok
+test_initialization (tests.test_workflow_detector.TestWorkflowDetector.test_initialization)
+Test detector initializes ... ok
+test_register_workflow (tests.test_workflow_detector.TestWorkflowDetector.test_register_workflow)
+Test registering a workflow ... ok
+test_route_to_workflow (tests.test_workflow_detector.TestWorkflowDetector.test_route_to_workflow)
+Test routing to workflow ... ok
+
+======================================================================
+ERROR: test_projects_list_empty (tests.test_executive_projects.TestExecutiveProjects.test_projects_list_empty)
+Test listing projects when none exist
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_executive_projects.py", line 89, in test_projects_list_empty
+    response = self.ai._handle_projects_command(cmd)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'BuddAI' object has no attribute '_handle_projects_command'. Did you mean: '_handle_language_command'?
+
+======================================================================
+ERROR: test_projects_list_populated (tests.test_executive_projects.TestExecutiveProjects.test_projects_list_populated)
+Test listing projects with existing data
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_executive_projects.py", line 106, in test_projects_list_populated
+    response = self.ai._handle_projects_command(cmd)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'BuddAI' object has no attribute '_handle_projects_command'. Did you mean: '_handle_language_command'?
+
+======================================================================
+ERROR: test_projects_new_command (tests.test_executive_projects.TestExecutiveProjects.test_projects_new_command)
+Test creating a new project
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_executive_projects.py", line 71, in test_projects_new_command
+    response = self.ai._handle_projects_command(cmd)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'BuddAI' object has no attribute '_handle_projects_command'. Did you mean: '_handle_language_command'?
+
+======================================================================
+ERROR: test_projects_usage_errors (tests.test_executive_projects.TestExecutiveProjects.test_projects_usage_errors)
+Test invalid command usage
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_executive_projects.py", line 116, in test_projects_usage_errors
+    response = self.ai._handle_projects_command(cmd)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'BuddAI' object has no attribute '_handle_projects_command'. Did you mean: '_handle_language_command'?
+
+======================================================================
+ERROR: test_export_session_json_empty (tests.test_v5_expansion.TestV5Expansion.test_export_session_json_empty)
+17. Test JSON export with empty session
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 262, in test_export_session_json_empty
+    result = self.buddai.export_session_to_json("sess_empty")
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 1453, in export_session_to_json
+    data = self.get_session_export_data(session_id)
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 1441, in get_session_export_data
+    cursor.execute("SELECT role, content, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (sid,))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: messages
+
+======================================================================
+ERROR: test_import_session_json_valid (tests.test_v5_expansion.TestV5Expansion.test_import_session_json_valid)
+18. Test valid JSON session import
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 276, in test_import_session_json_valid
+    sid = self.buddai.import_session_from_json(data)
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 1477, in import_session_from_json
+    cursor.execute("SELECT 1 FROM sessions WHERE session_id = ? AND user_id = ?", (session_id, self.user_id))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: sessions
+
+======================================================================
+ERROR: test_record_feedback_negative (tests.test_v5_expansion.TestV5Expansion.test_record_feedback_negative)
+11. Test recording negative feedback triggers analysis
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 204, in test_record_feedback_negative
+    result = self.buddai.record_feedback(123, False, "Bad code")
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 465, in record_feedback
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        INSERT INTO feedback (message_id, positive, comment, timestamp)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        VALUES (?, ?, ?, ?)
+        ^^^^^^^^^^^^^^^^^^^
+    """, (message_id, feedback, comment, datetime.now().isoformat()))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: feedback
+
+======================================================================
+ERROR: test_record_feedback_positive (tests.test_v5_expansion.TestV5Expansion.test_record_feedback_positive)
+10. Test recording positive feedback
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 191, in test_record_feedback_positive
+    self.buddai.record_feedback(123, True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 465, in record_feedback
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        INSERT INTO feedback (message_id, positive, comment, timestamp)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        VALUES (?, ?, ?, ?)
+        ^^^^^^^^^^^^^^^^^^^
+    """, (message_id, feedback, comment, datetime.now().isoformat()))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: feedback
+
+======================================================================
+ERROR: test_regenerate_response_not_found (tests.test_v5_expansion.TestV5Expansion.test_regenerate_response_not_found)
+12. Test regeneration when message ID not found
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 215, in test_regenerate_response_not_found
+    result = self.buddai.regenerate_response(999)
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 485, in regenerate_response
+    cursor.execute("SELECT session_id, id FROM messages WHERE id = ?", (message_id,))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: messages
+
+======================================================================
+ERROR: test_regenerate_response_success (tests.test_v5_expansion.TestV5Expansion.test_regenerate_response_success)
+13. Test successful regeneration
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 227, in test_regenerate_response_success
+    result = self.buddai.regenerate_response(10, "Make it tasty")
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 485, in regenerate_response
+    cursor.execute("SELECT session_id, id FROM messages WHERE id = ?", (message_id,))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: messages
+
+======================================================================
+ERROR: test_scan_style_no_index (tests.test_v5_expansion.TestV5Expansion.test_scan_style_no_index)
+8. Test style scan with no indexed code
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 168, in test_scan_style_no_index
+    self.buddai.scan_style_signature()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 140, in scan_style_signature
+    cursor.execute("SELECT content FROM repo_index WHERE user_id = ? ORDER BY RANDOM() LIMIT 5", (self.user_id,))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: repo_index
+
+======================================================================
+ERROR: test_scan_style_with_index (tests.test_v5_expansion.TestV5Expansion.test_scan_style_with_index)
+9. Test style scan with indexed code
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 179, in test_scan_style_with_index
+    self.buddai.scan_style_signature()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 140, in scan_style_signature
+    cursor.execute("SELECT content FROM repo_index WHERE user_id = ? ORDER BY RANDOM() LIMIT 5", (self.user_id,))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: repo_index
+
+======================================================================
+ERROR: test_shadow_suggestions_integration (tests.test_v5_expansion.TestV5Expansion.test_shadow_suggestions_integration)
+6. Test that shadow suggestions are appended to chat response
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\tests\test_v5_expansion.py", line 147, in test_shadow_suggestions_integration
+    response = self.buddai.chat("Hi")
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\buddAI\buddai_executive.py", line 1310, in chat
+    threshold = fallback_cfg.get("confidence_threshold", 70)
+                ^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'get'
+
+----------------------------------------------------------------------
+Ran 380 tests in 58.246s
+
+FAILED (errors=13)

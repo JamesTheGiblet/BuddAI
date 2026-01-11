@@ -162,7 +162,7 @@ class BuddAI:
                 category = parts[0].strip('- *')
                 pref = parts[1].strip()
                 cursor.execute(
-                    "INSERT INTO style_preferences (user_id, category, preference, confidence, extracted_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO style_preferences (user_id, category, preference, confidence, extracted_at) VALUES (?, ?, ?, ?, ?)",
                     (self.user_id, category, pref, 0.8, timestamp)
                 )
         
@@ -278,12 +278,16 @@ class BuddAI:
 
     def get_learned_rules(self) -> List[Dict]:
         """Retrieve high-confidence rules"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT rule_text, pattern_find, pattern_replace, confidence FROM code_rules WHERE confidence >= 0.8")
-        rows = cursor.fetchall()
-        conn.close()
-        return [{"rule": r[0], "find": r[1], "replace": r[2], "confidence": r[3]} for r in rows]
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT rule_text, pattern_find, pattern_replace, confidence FROM code_rules WHERE confidence >= 0.8")
+            rows = cursor.fetchall()
+            conn.close()
+            return [{"rule": r[0], "find": r[1], "replace": r[2], "confidence": r[3]} for r in rows]
+        except Exception as e:
+            logger.error(f"Error retrieving learned rules: {e}")
+            return []
 
     def _get_current_mode_note(self) -> Optional[str]:
         """Retrieve the note for the current work cycle mode"""
@@ -894,6 +898,57 @@ class BuddAI:
         else:
             return f"Unknown action: {action}\nActions: patterns, practices, template"
 
+    def _print(self, *args, **kwargs):
+        """Wrapper for print to allow capturing output"""
+        print(*args, **kwargs)
+
+    def _handle_projects_command(self, command: str) -> str:
+        """Handle project commands and return output as string (for tests/API)"""
+        output = []
+        
+        # Save original _print
+        original_print = self._print
+        
+        # Define capture function
+        def capture_print(*args, **kwargs):
+            sep = kwargs.get('sep', ' ')
+            end = kwargs.get('end', '\n')
+            text = sep.join(map(str, args)) + end
+            output.append(text)
+            
+        try:
+            # Override _print
+            self._print = capture_print
+            
+            self._print(f"DEBUG: cmd='{command}'")
+            
+            parts = command.strip().split()
+            if not parts:
+                return "Usage: /projects, /new, /open, /close, /save, /timeline"
+                
+            cmd = parts[0].lower()
+            if cmd.startswith('/'):
+                cmd = cmd[1:]
+            
+            if cmd == 'projects':
+                self._cmd_list_projects()
+            elif cmd == 'new':
+                self._cmd_new_project(command)
+            elif cmd == 'open':
+                self._cmd_open_project(command)
+            elif cmd == 'close':
+                self._cmd_close_project()
+            elif cmd == 'save':
+                self._cmd_save_project()
+            elif cmd == 'timeline':
+                self._cmd_show_timeline()
+                
+        finally:
+            # Restore original _print
+            self._print = original_print
+        
+        return "".join(output).strip()
+
     def _handle_command(self, message: str) -> bool:
         """Handle special commands"""
         
@@ -950,10 +1005,10 @@ class BuddAI:
         projects = self.project_memory.list_projects()
         
         if not projects:
-            print("\n📁 No projects yet. Type /new to create one!\n")
+            self._print("\n📁 No projects yet. Type /new to create one!\n")
             return
         
-        print("\n📁 Your Projects:\n")
+        self._print("\n📁 Your Projects:\n")
         
         for proj in projects:
             status_icons = {
@@ -964,44 +1019,44 @@ class BuddAI:
             }
             icon = status_icons.get(proj.status, '❓')
             
-            print(f"{icon} {proj.name} ({proj.project_type})")
-            print(f"   Updated: {proj.updated_at[:10]}")
+            self._print(f"{icon} {proj.name} ({proj.project_type})")
+            self._print(f"   Updated: {proj.updated_at[:10]}")
             
             if proj.next_steps:
                 pending = len([s for s in proj.next_steps if not s['completed']])
                 if pending > 0:
-                    print(f"   📋 {pending} next steps")
+                    self._print(f"   📋 {pending} next steps")
             
-            print()
+            self._print()
 
     def _cmd_new_project(self, message: str):
         """Create new project"""
         parts = message.split(maxsplit=1)
         
         if len(parts) < 2:
-            print("\n💡 Creating new project...")
-            print("What should we call it?")
+            self._print("\n💡 Creating new project...")
+            self._print("What should we call it?")
             project_name = input("Project name: ").strip()
         else:
             # Extract name from command
             project_name = parts[1].strip()
         
         if not project_name:
-            print("❌ Project name required")
+            self._print("❌ Project name required")
             return
         
         # Check if exists
         if self.project_memory.load_project(project_name):
-            print(f"❌ Project '{project_name}' already exists")
-            print(f"Use /open {project_name} to continue it")
+            self._print(f"❌ Project '{project_name}' already exists")
+            self._print(f"Use /open {project_name} to continue it")
             return
         
         # Ask for type
-        print("\nWhat type of project?")
-        print("1. Robotics")
-        print("2. 3D Printing")
-        print("3. Web Development")
-        print("4. General")
+        self._print("\nWhat type of project?")
+        self._print("1. Robotics")
+        self._print("2. 3D Printing")
+        self._print("3. Web Development")
+        self._print("4. General")
         
         type_choice = input("Choice (1-4): ").strip()
         
@@ -1025,16 +1080,16 @@ class BuddAI:
         self.project_memory.save_project(project)
         self.current_project = project
         
-        print(f"\n✅ Project '{project_name}' created!")
-        print(f"Type: {project_type}")
-        print("\nWhat would you like to build first?")
+        self._print(f"\n✅ Project '{project_name}' created!")
+        self._print(f"Type: {project_type}")
+        self._print("\nWhat would you like to build first?")
 
     def _cmd_open_project(self, message: str):
         """Open existing project"""
         parts = message.split(maxsplit=1)
         
         if len(parts) < 2:
-            print("Usage: /open <project_name>")
+            self._print("Usage: /open <project_name>")
             return
         
         project_name = parts[1].strip()
@@ -1047,63 +1102,63 @@ class BuddAI:
             results = self.project_memory.search_projects(project_name)
             if results:
                 project = results[0][0]
-                print(f"📂 Opening '{project.name}' (matched '{project_name}')")
+                self._print(f"📂 Opening '{project.name}' (matched '{project_name}')")
         
         if not project:
-            print(f"❌ Project '{project_name}' not found")
-            print("Type /projects to see all projects")
+            self._print(f"❌ Project '{project_name}' not found")
+            self._print("Type /projects to see all projects")
             return
         
         self.current_project = project
         
-        print(f"\n📂 Opened: {project.name}")
-        print(project.get_summary())
+        self._print(f"\n📂 Opened: {project.name}")
+        self._print(project.get_summary())
         
         # Show recent conversation
         if project.conversations:
             last_conv = project.conversations[-1]
-            print("\n💬 Last conversation:")
-            print(f"You: {last_conv['user'][:80]}...")
-            print(f"Me: {last_conv['assistant'][:80]}...")
+            self._print("\n💬 Last conversation:")
+            self._print(f"You: {last_conv['user'][:80]}...")
+            self._print(f"Me: {last_conv['assistant'][:80]}...")
         
         # Show next steps
         if project.next_steps:
             pending = [s for s in project.next_steps if not s['completed']]
             if pending:
-                print("\n📋 Next steps:")
+                self._print("\n📋 Next steps:")
                 for i, step in enumerate(pending[:3], 1):
-                    print(f"{i}. {step['step']}")
+                    self._print(f"{i}. {step['step']}")
         
-        print("\nReady to continue!\n")
+        self._print("\nReady to continue!\n")
 
     def _cmd_close_project(self):
         """Close current project"""
         if not self.current_project:
-            print("No project currently open")
+            self._print("No project currently open")
             return
         
         # Auto-save
         self.project_memory.save_project(self.current_project)
         
-        print(f"✅ Closed and saved: {self.current_project.name}")
+        self._print(f"✅ Closed and saved: {self.current_project.name}")
         self.current_project = None
 
     def _cmd_save_project(self):
         """Manually save current project"""
         if not self.current_project:
-            print("No project currently open")
+            self._print("No project currently open")
             return
         
         self.project_memory.save_project(self.current_project)
-        print(f"✅ Saved: {self.current_project.name}")
+        self._print(f"✅ Saved: {self.current_project.name}")
 
     def _cmd_show_timeline(self):
         """Show project timeline"""
         if not self.current_project:
-            print("No project currently open")
+            self._print("No project currently open")
             return
         
-        print(self.current_project.get_timeline())
+        self._print(self.current_project.get_timeline())
 
     def _print_help(self):
         """Print help with new commands"""
