@@ -24,10 +24,14 @@ from core.buddai_knowledge import RepoManager
 from core.buddai_llm import OllamaClient
 from core.buddai_prompt_engine import PromptEngine
 from core.buddai_personality import PersonalityManager
+from conversation.personality import BuddAIPersonality
+from conversation.project_memory import get_project_memory, Project
 from core.buddai_storage import StorageManager
 from validators.registry import ValidatorRegistry
 from skills import load_registry
 from languages.language_registry import get_language_registry
+
+logger = logging.getLogger(__name__)
 
 # --- Shadow Suggestion Engine ---
 
@@ -38,18 +42,28 @@ ALLOWED_TYPES = [
 ]
 MAX_UPLOAD_FILES = 20
 
+class ChatResponse(str):
+    """String subclass that carries metadata"""
+    def __new__(cls, content, model=None, intent=None):
+        obj = super().__new__(cls, content)
+        obj.model = model
+        obj.intent = intent
+        return obj
+
 class BuddAI:
     """Executive with task breakdown"""
 
-    def __init__(self, user_id: str = "default", server_mode: bool = False):
+    def __init__(self, user_id: str = "default", server_mode: bool = False, db_path: str = None):
         self.user_id = user_id
+        self.db_path = db_path or DB_PATH
         self.last_generated_id = None
         self.last_prompt_debug = None
         self.server_mode = server_mode
         self.context_messages = []
         self.storage = StorageManager(self.user_id)
         self.personality_manager = PersonalityManager()
-        self.shadow_engine = ShadowSuggestionEngine(DB_PATH, self.user_id)
+        self.personality_engine = BuddAIPersonality()
+        self.shadow_engine = ShadowSuggestionEngine(self.db_path, self.user_id)
         self.learner = SmartLearner()
         self.hardware_profile = HardwareProfile()
         self.current_hardware = "Generic"
@@ -60,12 +74,20 @@ class BuddAI:
         self.metrics = LearningMetrics()
         self.fine_tuner = ModelFineTuner()
         self.conversation_protocol = ConversationProtocol(self.personality_manager)
-        self.repo_manager = RepoManager(DB_PATH, self.user_id)
+        self.repo_manager = RepoManager(self.db_path, self.user_id)
         self.llm = OllamaClient()
         self.prompt_engine = PromptEngine()
         self.skills_registry = load_registry()
         self.language_registry = get_language_registry()
         self.workflow_detector = WorkflowDetector()
+        
+        # Conversational systems
+        self.personality = BuddAIPersonality()
+        self.project_memory = get_project_memory()
+        self.current_project = None  # Active project context
+        self.default_mode = 'balanced'
+        
+        logger.info("Conversational systems initialized")
         
         self.display_welcome_message()
         
@@ -73,21 +95,32 @@ class BuddAI:
         
     def display_welcome_message(self):
         """Display the startup banner and status."""
-        # Format welcome message with rule count
-        welcome_tmpl = self.personality_manager.get_value("communication.welcome_message", "BuddAI Executive v4.5 - Enhanced Learning & Integration")
+        # Get personality greeting
+        greeting = self.personality.greet()
+        
+        print("\n" + "="*50)
+        print(greeting)
+        print("="*50)
+        
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM code_rules")
             count = cursor.fetchone()[0]
             conn.close()
-            welcome_msg = welcome_tmpl.replace("{rule_count}", str(count))
-            welcome_msg = welcome_msg.replace("{schedule_status}", self.personality_manager.get_user_status())
-            print(welcome_msg)
+            print(f"🧠 Learned Rules: {count}")
         except:
-            print(welcome_tmpl.replace("{rule_count}", "0").replace("{schedule_status}", ""))
-            
-        print("=" * 50)
+            pass
+        
+        # Show recent projects if any
+        recent = self.project_memory.get_recent_projects(n=3)
+        if recent:
+            print("\n📁 Recent Projects:")
+            for proj in recent:
+                status_icon = "▶️" if proj.status == 'active' else "⏸️"
+                print(f"  {status_icon} {proj.name} ({proj.project_type})")
+            print("\nType /projects to see all, or /open <name> to continue\n")
+        
         print(f"Session: {self.storage.current_session_id}")
         print(f"🧩 Smart Skills: {len(self.skills_registry)} loaded")
         print(f"🛡️  Validators:   {len(self.validator.validators)} loaded")
@@ -100,7 +133,7 @@ class BuddAI:
     def scan_style_signature(self) -> None:
         """V3.0: Analyze repo_index to extract style preferences."""
         print("\n🕵️  Scanning repositories for style signature...")
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         # Get a sample of code
@@ -143,7 +176,7 @@ class BuddAI:
 
     def save_correction(self, original_code: str, corrected_code: str, reason: str):
         """Store when James fixes BuddAI's code"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -180,7 +213,7 @@ class BuddAI:
     def get_applicable_rules(self, user_message: str) -> List[Dict]:
         """Get rules relevant to the user message"""
         # user_message is currently unused
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         # Fetch rules with reasonable confidence
         cursor.execute("SELECT rule_text, confidence FROM code_rules WHERE confidence > 0.6 ORDER BY confidence DESC")
@@ -190,7 +223,7 @@ class BuddAI:
 
     def get_style_summary(self) -> str:
         """Get summary of learned style preferences"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT category, preference FROM style_preferences WHERE confidence > 0.6")
         rows = cursor.fetchall()
@@ -201,7 +234,7 @@ class BuddAI:
 
     def teach_rule(self, rule_text: str):
         """Explicitly save a user-taught rule"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -214,7 +247,7 @@ class BuddAI:
 
     def log_compilation_result(self, code: str, success: bool, errors: str = ""):
         """Track what compiles vs what fails"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -245,7 +278,7 @@ class BuddAI:
 
     def get_learned_rules(self) -> List[Dict]:
         """Retrieve high-confidence rules"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT rule_text, pattern_find, pattern_replace, confidence FROM code_rules WHERE confidence >= 0.8")
         rows = cursor.fetchall()
@@ -427,7 +460,7 @@ class BuddAI:
 
     def record_feedback(self, message_id: int, feedback: bool, comment: str = "") -> Optional[str]:
         """Learn from user feedback."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO feedback (message_id, positive, comment, timestamp)
@@ -446,7 +479,7 @@ class BuddAI:
 
     def regenerate_response(self, message_id: int, comment: str = "") -> str:
         """Regenerate a response, optionally considering feedback comment"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute("SELECT session_id, id FROM messages WHERE id = ?", (message_id,))
@@ -475,7 +508,7 @@ class BuddAI:
 
     def analyze_failure(self, message_id: int) -> None:
         """Analyze why a message received negative feedback"""
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT content FROM messages WHERE id = ?", (message_id,))
         row = cursor.fetchone()
@@ -533,6 +566,15 @@ class BuddAI:
         elif self.repo_manager.is_search_query(user_message):
             # This is a search query - query the database
             return self.repo_manager.search_repositories(user_message)
+            
+        # Check personality intents (Greeting, Idea Exploration)
+        intent = self.personality_engine.understand_intent(user_message)
+        if intent['type'] in ['greeting', 'idea_exploration', 'continue_project', 'new_project']:
+            # Avoid trapping explicit code requests
+            if not (intent['type'] == 'idea_exploration' and any(w in user_message.lower() for w in ['code', 'generate', 'write'])):
+                print(f"\n💬 Personality Engine ({intent['type']})...")
+                return self.personality_engine.respond_naturally(user_message, intent)
+
         elif self.conversation_protocol.is_conversational(user_message):
             # New Conversation Protocol
             print("\n💬 Using FAST model (Conversational Protocol)...")
@@ -656,7 +698,7 @@ class BuddAI:
             return "❌ No recent message to correct."
 
         if cmd == '/rules':
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT rule_text, confidence FROM code_rules ORDER BY confidence DESC")
             rows = cursor.fetchall()
@@ -777,9 +819,6 @@ class BuddAI:
         if cmd.startswith('/language'):
             return self._handle_language_command(command)
 
-        if cmd.startswith('/projects'):
-            return self._handle_projects_command(command)
-
         return f"Command {cmd.split()[0]} not supported in chat mode."
 
     def log_fallback_prompt(self, model: str, prompt: str) -> None:
@@ -855,35 +894,236 @@ class BuddAI:
         else:
             return f"Unknown action: {action}\nActions: patterns, practices, template"
 
-    def _handle_projects_command(self, command: str) -> str:
-        """Handle /projects command"""
-        parts = command.split(maxsplit=2)
-        action = parts[1].lower() if len(parts) > 1 else 'list'
+    def _handle_command(self, message: str) -> bool:
+        """Handle special commands"""
         
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY, name TEXT, status TEXT, created_at TEXT)")
+        if message.startswith('/'):
+            cmd = message[1:].lower().split()[0]
+            
+            # Project commands
+            if cmd == 'projects':
+                self._cmd_list_projects()
+                return True
+            
+            elif cmd == 'new':
+                self._cmd_new_project(message)
+                return True
+            
+            elif cmd == 'open':
+                self._cmd_open_project(message)
+                return True
+            
+            elif cmd == 'close':
+                self._cmd_close_project()
+                return True
+            
+            elif cmd == 'save':
+                self._cmd_save_project()
+                return True
+            
+            elif cmd == 'timeline':
+                self._cmd_show_timeline()
+                return True
+            
+            # Existing commands
+            elif cmd == 'fast':
+                self.default_mode = 'fast'
+                print("✅ Switched to FAST mode")
+                return True
+            
+            elif cmd == 'balanced':
+                self.default_mode = 'balanced'
+                print("✅ Switched to BALANCED mode")
+                return True
+            
+            elif cmd == 'help':
+                self._print_help()
+                return True
+            
+            else:
+                return False
         
-        if action == 'list':
-            cursor.execute("SELECT name, status FROM projects ORDER BY created_at DESC")
-            rows = cursor.fetchall()
-            conn.close()
-            if not rows:
-                return "📂 No active projects. Use /projects new <name>"
-            return "📂 Projects:\n" + "\n".join([f"- {r[0]} ({r[1]})" for r in rows])
+        return False
+
+    def _cmd_list_projects(self):
+        """List all projects"""
+        projects = self.project_memory.list_projects()
+        
+        if not projects:
+            print("\n📁 No projects yet. Type /new to create one!\n")
+            return
+        
+        print("\n📁 Your Projects:\n")
+        
+        for proj in projects:
+            status_icons = {
+                'active': '▶️',
+                'paused': '⏸️',
+                'completed': '✅',
+                'archived': '📦'
+            }
+            icon = status_icons.get(proj.status, '❓')
             
-        if action == 'new':
-            if len(parts) < 3:
-                conn.close()
-                return "Usage: /projects new <name>"
-            name = parts[2]
-            cursor.execute("INSERT INTO projects (name, status, created_at) VALUES (?, ?, ?)", (name, 'active', datetime.now().isoformat()))
-            conn.commit()
-            conn.close()
-            return f"✅ Project '{name}' created."
+            print(f"{icon} {proj.name} ({proj.project_type})")
+            print(f"   Updated: {proj.updated_at[:10]}")
             
-        conn.close()
-        return "Usage: /projects [list|new <name>]"
+            if proj.next_steps:
+                pending = len([s for s in proj.next_steps if not s['completed']])
+                if pending > 0:
+                    print(f"   📋 {pending} next steps")
+            
+            print()
+
+    def _cmd_new_project(self, message: str):
+        """Create new project"""
+        parts = message.split(maxsplit=1)
+        
+        if len(parts) < 2:
+            print("\n💡 Creating new project...")
+            print("What should we call it?")
+            project_name = input("Project name: ").strip()
+        else:
+            # Extract name from command
+            project_name = parts[1].strip()
+        
+        if not project_name:
+            print("❌ Project name required")
+            return
+        
+        # Check if exists
+        if self.project_memory.load_project(project_name):
+            print(f"❌ Project '{project_name}' already exists")
+            print(f"Use /open {project_name} to continue it")
+            return
+        
+        # Ask for type
+        print("\nWhat type of project?")
+        print("1. Robotics")
+        print("2. 3D Printing")
+        print("3. Web Development")
+        print("4. General")
+        
+        type_choice = input("Choice (1-4): ").strip()
+        
+        type_map = {
+            '1': 'robotics',
+            '2': '3d_printing',
+            '3': 'web_development',
+            '4': 'general'
+        }
+        
+        project_type = type_map.get(type_choice, 'general')
+        
+        # Create project
+        project = Project(project_name, project_type)
+        
+        # Add initial metadata
+        project.metadata['created_by'] = 'BuddAI v5.0'
+        project.metadata['initial_idea'] = input("Brief description: ").strip()
+        
+        # Save
+        self.project_memory.save_project(project)
+        self.current_project = project
+        
+        print(f"\n✅ Project '{project_name}' created!")
+        print(f"Type: {project_type}")
+        print("\nWhat would you like to build first?")
+
+    def _cmd_open_project(self, message: str):
+        """Open existing project"""
+        parts = message.split(maxsplit=1)
+        
+        if len(parts) < 2:
+            print("Usage: /open <project_name>")
+            return
+        
+        project_name = parts[1].strip()
+        
+        # Try exact match first
+        project = self.project_memory.load_project(project_name)
+        
+        # Try fuzzy search
+        if not project:
+            results = self.project_memory.search_projects(project_name)
+            if results:
+                project = results[0][0]
+                print(f"📂 Opening '{project.name}' (matched '{project_name}')")
+        
+        if not project:
+            print(f"❌ Project '{project_name}' not found")
+            print("Type /projects to see all projects")
+            return
+        
+        self.current_project = project
+        
+        print(f"\n📂 Opened: {project.name}")
+        print(project.get_summary())
+        
+        # Show recent conversation
+        if project.conversations:
+            last_conv = project.conversations[-1]
+            print("\n💬 Last conversation:")
+            print(f"You: {last_conv['user'][:80]}...")
+            print(f"Me: {last_conv['assistant'][:80]}...")
+        
+        # Show next steps
+        if project.next_steps:
+            pending = [s for s in project.next_steps if not s['completed']]
+            if pending:
+                print("\n📋 Next steps:")
+                for i, step in enumerate(pending[:3], 1):
+                    print(f"{i}. {step['step']}")
+        
+        print("\nReady to continue!\n")
+
+    def _cmd_close_project(self):
+        """Close current project"""
+        if not self.current_project:
+            print("No project currently open")
+            return
+        
+        # Auto-save
+        self.project_memory.save_project(self.current_project)
+        
+        print(f"✅ Closed and saved: {self.current_project.name}")
+        self.current_project = None
+
+    def _cmd_save_project(self):
+        """Manually save current project"""
+        if not self.current_project:
+            print("No project currently open")
+            return
+        
+        self.project_memory.save_project(self.current_project)
+        print(f"✅ Saved: {self.current_project.name}")
+
+    def _cmd_show_timeline(self):
+        """Show project timeline"""
+        if not self.current_project:
+            print("No project currently open")
+            return
+        
+        print(self.current_project.get_timeline())
+
+    def _print_help(self):
+        """Print help with new commands"""
+        print("\n📚 Available Commands:\n")
+        print("Project Management:")
+        print("  /projects       - List all projects")
+        print("  /new [name]     - Create new project")
+        print("  /open <name>    - Open existing project")
+        print("  /close          - Close current project")
+        print("  /save           - Save current project")
+        print("  /timeline       - Show project timeline")
+        print()
+        print("AI Settings:")
+        print("  /fast           - Use fast model")
+        print("  /balanced       - Use balanced model")
+        print()
+        print("Other:")
+        print("  /help           - Show this help")
+        print("  exit            - Exit BuddAI")
+        print()
 
     def _extract_code_blocks(self, text: str) -> List[Dict]:
         """Extract code blocks from markdown"""
@@ -921,8 +1161,51 @@ class BuddAI:
         """Main chat with smart routing and shadow suggestions"""
         
         # Intercept commands
+        if self._handle_command(user_message):
+            return ChatResponse('', model='command')
+            
         if user_message.strip().startswith('/'):
-            return self.handle_slash_command(user_message.strip())
+            return ChatResponse(self.handle_slash_command(user_message.strip()), model='command')
+
+        # Detect intent using personality
+        context = {
+            'current_project': self.current_project.name if self.current_project else None
+        }
+        intent = self.personality.understand_intent(user_message, context=context)
+        
+        # Handle high-confidence intents conversationally
+        if intent['confidence'] > 0.7:
+            
+            # New project intent
+            if intent['type'] == 'new_project':
+                self._cmd_new_project(user_message)
+                return ChatResponse('', model='conversational', intent=intent)
+            
+            # Continue project intent
+            elif intent['type'] == 'continue_project':
+                recent = self.project_memory.get_recent_projects(n=3)
+                if recent:
+                    print("\n📁 Recent projects:")
+                    for i, proj in enumerate(recent, 1):
+                        print(f"{i}. {proj.name} ({proj.project_type})")
+                    choice = input("\nWhich one? (1-3): ").strip()
+                    if choice.isdigit() and 1 <= int(choice) <= len(recent):
+                        self._cmd_open_project(f"/open {recent[int(choice)-1].name}")
+                return ChatResponse('', model='conversational', intent=intent)
+            
+            # Idea exploration - ask clarifying questions
+            elif intent['type'] == 'idea_exploration':
+                response = self.personality.respond_naturally(user_message, intent, context={
+                    'current_project': self.current_project
+                })
+                print(f"\nBuddAI:\n{response}\n")
+                
+                # Save to history
+                msg_id = self.storage.save_message("assistant", response)
+                self.last_generated_id = msg_id
+                self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+                
+                return ChatResponse(response, model='conversational', intent=intent)
 
         # Detect code blocks and validate
         code_blocks = self._extract_code_blocks(user_message)
@@ -954,7 +1237,9 @@ class BuddAI:
         self.context_messages.append({"id": user_msg_id, "role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
         # Detect Intent
-        intent, confidence = self.workflow_detector.detect_intent(user_message)
+        detection = self.workflow_detector.detect_intent(user_message)
+        intent = detection.get('intent', 'unknown')
+        confidence = detection.get('confidence', 0.0)
         if confidence > 0.7:
             print(f"🎯 Intent Detected: {intent} ({confidence:.2f})")
 
@@ -964,7 +1249,7 @@ class BuddAI:
             msg_id = self.storage.save_message("assistant", skill_result)
             self.last_generated_id = msg_id
             self.context_messages.append({"id": msg_id, "role": "assistant", "content": skill_result, "timestamp": datetime.now().isoformat()})
-            return skill_result
+            return ChatResponse(skill_result, model='skill')
 
         # Learn from conversation (Memory)
         self.adaptive_learner.extract_conversational_facts(user_message, self)
@@ -978,7 +1263,7 @@ class BuddAI:
             msg_id = self.storage.save_message("assistant", response)
             self.last_generated_id = msg_id
             self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
-            return response
+            return ChatResponse(response, model='system')
 
         response = self._route_request(user_message, force_model, forge_mode)
 
@@ -1084,8 +1369,19 @@ class BuddAI:
         msg_id = self.storage.save_message("assistant", response)
         self.last_generated_id = msg_id
         self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+        
+        result = ChatResponse(response, model=force_model or 'balanced', intent=intent)
 
-        return response
+        # After getting AI response, save to project
+        if self.current_project:
+            self.current_project.add_conversation(
+                user_message, 
+                result,
+                {'model': getattr(result, 'model', 'unknown'), 'intent': intent}
+            )
+            self.project_memory.save_project(self.current_project)
+            
+        return result
         
     def get_sessions(self, limit: int = 20) -> List[Dict[str, str]]:
         return self.storage.get_sessions(limit)
@@ -1118,7 +1414,7 @@ class BuddAI:
         """Export session history to a Markdown file"""
         sid = session_id or self.storage.current_session_id
         
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT role, content, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (sid,))
         rows = cursor.fetchall()
@@ -1140,7 +1436,7 @@ class BuddAI:
     def get_session_export_data(self, session_id: str = None) -> Dict:
         """Get session data as a dictionary for export"""
         sid = session_id or self.storage.current_session_id
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT role, content, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (sid,))
         rows = cursor.fetchall()
@@ -1174,7 +1470,7 @@ class BuddAI:
         if not session_id or not messages:
             raise ValueError("Invalid session JSON format")
             
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         # Check if session exists to avoid collision
@@ -1265,6 +1561,7 @@ class BuddAI:
                         print("/fast - Use fast model")
                         print("/balanced - Use balanced model")
                         print("/index <path> - Index local repositories")
+                        print("/projects - Manage projects (list, new, open)")
                         print("/scan - Scan style signature (V3.0)")
                         print("/learn - Extract patterns from corrections")
                         print("/analyze - Analyze session for implicit feedback")
@@ -1373,7 +1670,7 @@ class BuddAI:
                             print("\n✨ All code blocks look good!")
                         continue
                     elif cmd == '/rules':
-                        conn = sqlite3.connect(DB_PATH)
+                        conn = sqlite3.connect(self.db_path)
                         cursor = conn.cursor()
                         cursor.execute("SELECT rule_text, confidence, learned_from FROM code_rules ORDER BY confidence DESC")
                         rows = cursor.fetchall()
@@ -1436,12 +1733,11 @@ class BuddAI:
                         else:
                             print(self.export_session_to_markdown())
                         continue
-                    else:
-                        print("\nUnknown command. Type /help")
-                        continue
                 # Chat
-                response = self.chat(user_input, force_model)
-                print(f"\nBuddAI:\n{response}\n")
+                result = self.chat(user_input, force_model)
+                response = str(result)
+                if response:
+                    print(f"\nBuddAI:\n{response}\n")
                 force_model = None
         except KeyboardInterrupt:
             print("\n\n👋 Bye!")

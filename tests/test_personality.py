@@ -75,6 +75,18 @@ class TestBuddAIPersonality(unittest.TestCase):
         self.assertIsNotNone(self.personality)
         self.assertEqual(self.personality.traits['name'], 'BuddAI')
     
+    def test_understand_intent_greeting(self):
+        """Test detecting greetings"""
+        intent = self.personality.understand_intent("hi")
+        self.assertEqual(intent['type'], 'greeting')
+        self.assertGreater(intent['confidence'], 0.9)
+
+    def test_understand_intent_how_are_you(self):
+        """Test detecting personal status questions"""
+        intent = self.personality.understand_intent("hi how are you?")
+        self.assertEqual(intent['type'], 'greeting')
+        self.assertGreater(intent['confidence'], 0.9)
+
     def test_greet_generates_message(self):
         """Test greeting generation"""
         greeting = self.personality.greet()
@@ -104,6 +116,12 @@ class TestBuddAIPersonality(unittest.TestCase):
         self.assertEqual(intent['type'], 'new_project')
         self.assertGreater(intent['confidence'], 0.8)
     
+    def test_understand_intent_new_one(self):
+        """Test detecting new project from 'new one'"""
+        intent = self.personality.understand_intent("new one")
+        self.assertEqual(intent['type'], 'new_project')
+        self.assertGreater(intent['confidence'], 0.8)
+
     def test_understand_intent_question(self):
         """Test detecting questions"""
         intent = self.personality.understand_intent("how does this work?")
@@ -134,6 +152,14 @@ class TestBuddAIPersonality(unittest.TestCase):
         
         self.assertIn('robot', response.lower())
         self.assertGreater(len(response), 20)
+
+    def test_respond_naturally_greeting(self):
+        """Test natural response to greeting"""
+        intent = {'type': 'greeting'}
+        response = self.personality.respond_naturally("hi", intent)
+        
+        self.assertIn('James', response)
+        self.assertIn('?', response) # Should ask a question
     
     def test_remember_conversation(self):
         """Test conversation memory"""

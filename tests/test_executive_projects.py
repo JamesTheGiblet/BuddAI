@@ -22,10 +22,6 @@ class TestExecutiveProjects(unittest.TestCase):
         self.db_fd, self.db_path = tempfile.mkstemp()
         os.close(self.db_fd)
         
-        # Patch DB_PATH in buddai_executive to use our temp db
-        self.db_patcher = patch('buddai_executive.DB_PATH', self.db_path)
-        self.db_patcher.start()
-        
         # Mock heavy dependencies to allow lightweight BuddAI instantiation
         self.patches = [
             patch('buddai_executive.StorageManager'),
@@ -53,14 +49,21 @@ class TestExecutiveProjects(unittest.TestCase):
             p.start()
             
         # Initialize BuddAI
-        self.ai = BuddAI(server_mode=False)
+        self.ai = BuddAI(server_mode=False, db_path=self.db_path)
 
     def tearDown(self):
         """Clean up"""
-        self.db_patcher.stop()
         for p in self.patches:
             p.stop()
-        os.unlink(self.db_path)
+        
+        # Ensure DB connection is closed and file released
+        import gc
+        gc.collect()
+        
+        try:
+            os.unlink(self.db_path)
+        except (PermissionError, FileNotFoundError):
+            pass
 
     def test_projects_new_command(self):
         """Test creating a new project"""

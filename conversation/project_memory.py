@@ -147,6 +147,81 @@ class Project:
         
         return summary
 
+    def get_timeline(self) -> str:
+        """Generate a chronological timeline of project events"""
+        events = []
+        
+        # Add creation
+        events.append({
+            'timestamp': self.created_at,
+            'type': '✨ Created',
+            'description': f"Project '{self.name}' started"
+        })
+        
+        # Add conversations
+        for conv in self.conversations:
+            events.append({
+                'timestamp': conv['timestamp'],
+                'type': '💬 Chat',
+                'description': conv['user'][:50] + "..." if len(conv['user']) > 50 else conv['user']
+            })
+            
+        # Add decisions
+        for dec in self.decisions:
+            events.append({
+                'timestamp': dec['timestamp'],
+                'type': '✅ Decision',
+                'description': dec['decision']
+            })
+            
+        # Add next steps
+        for step in self.next_steps:
+            events.append({
+                'timestamp': step['timestamp'],
+                'type': '📋 Task Added',
+                'description': step['step']
+            })
+            if step.get('completed'):
+                events.append({
+                    'timestamp': step['completed_at'],
+                    'type': '🏁 Task Done',
+                    'description': step['step']
+                })
+                
+        # Add files
+        for f in self.files:
+            events.append({
+                'timestamp': f['added_at'],
+                'type': '📄 File',
+                'description': f.get('filepath', 'Unknown file')
+            })
+            
+        # Sort by timestamp
+        events.sort(key=lambda x: x['timestamp'])
+        
+        # Format output
+        output = [f"📅 Timeline for {self.name}\n"]
+        
+        current_date = ""
+        for event in events:
+            # Parse timestamp
+            try:
+                dt = datetime.fromisoformat(event['timestamp'])
+                date_str = dt.strftime("%Y-%m-%d")
+                time_str = dt.strftime("%H:%M")
+            except:
+                date_str = "Unknown Date"
+                time_str = "--:--"
+            
+            if date_str != current_date:
+                output.append(f"\n📅 {date_str}")
+                output.append("-" * 20)
+                current_date = date_str
+            
+            output.append(f"  {time_str} | {event['type']}: {event['description']}")
+            
+        return "\n".join(output)
+
 
 class ProjectMemory:
     """

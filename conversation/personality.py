@@ -129,14 +129,27 @@ class BuddAIPersonality:
             'requires_clarification': False
         }
         
+        # Greetings & Personal
+        # Check for greeting words at start of message
+        clean_msg = message_lower.replace(',', '').replace('!', '').replace('.', '').replace('?', '')
+        words = clean_msg.split()
+        
+        if words and words[0] in ['hi', 'hello', 'hey', 'greetings']:
+            intent['type'] = 'greeting'
+            intent['confidence'] = 0.95
+            
+        elif 'how are you' in message_lower:
+            intent['type'] = 'greeting'
+            intent['confidence'] = 0.95
+            
         # Project-related intents
-        if any(word in message_lower for word in ['thinking', 'idea', 'want to', 'planning']):
+        elif any(word in message_lower for word in ['thinking', 'idea', 'want to', 'planning']):
             intent['type'] = 'idea_exploration'
             intent['confidence'] = 0.8
             intent['requires_clarification'] = True
             
             # Extract topic
-            if 'robot' in message_lower or 'bot' in message_lower:
+            if 'robot' in message_lower or 'bot' in message_lower or 'spinner' in message_lower:
                 intent['entities'].append({'type': 'domain', 'value': 'robotics'})
             if 'printer' in message_lower or '3d' in message_lower:
                 intent['entities'].append({'type': 'domain', 'value': '3d_printing'})
@@ -150,7 +163,7 @@ class BuddAIPersonality:
             intent['suggestions'] = ['Load recent project', 'List active projects']
         
         # New project
-        elif any(phrase in message_lower for phrase in ['new project', 'start fresh', 'create new']):
+        elif any(phrase in message_lower for phrase in ['new project', 'start fresh', 'create new', 'new one']):
             intent['type'] = 'new_project'
             intent['confidence'] = 0.9
             intent['requires_clarification'] = True
@@ -230,7 +243,10 @@ class BuddAIPersonality:
         
         context = context or {}
         
-        if intent['type'] == 'idea_exploration':
+        if intent['type'] == 'greeting':
+            response = self.greet(context)
+            
+        elif intent['type'] == 'idea_exploration':
             response = self._handle_idea_exploration(message, intent, context)
         
         elif intent['type'] == 'continue_project':
@@ -260,15 +276,14 @@ class BuddAIPersonality:
         
         # Acknowledge the idea
         if domain == 'robotics':
-            response_parts.append("Ah nice! Robot idea - I love it. 🤖")
-            
             # Reference previous work
             if 'spinner' in message.lower() or 'spin' in message.lower():
-                response_parts.append("\nSpinner weapon? Those are brutal in combat.")
-                response_parts.append("This reminds me of GilBot (your flipper robot).")
+                response_parts.append("Ah nice! Full-body spinner robot? Reminds me of GilBot.")
+                response_parts.append("New project or variant?")
             elif 'swarm' in message.lower():
-                response_parts.append("\nSwarm robotics! Like the bioelectric mesh idea?")
+                response_parts.append("Swarm robotics! Like the bioelectric mesh idea?")
             else:
+                response_parts.append("Ah nice! Robot idea - I love it. 🤖")
                 response_parts.append("\nWhat kind of robot?")
         
         elif domain == '3d_printing':
@@ -277,7 +292,6 @@ class BuddAIPersonality:
         
         else:
             response_parts.append("Interesting idea!")
-            response_parts.append("\nTell me more - what's the domain?")
         
         # Ask clarifying questions
         questions = self.generate_clarifying_questions(intent, context)
@@ -294,7 +308,7 @@ class BuddAIPersonality:
     def _handle_new_project(self, message: str, intent: Dict, context: Dict) -> str:
         """Handle new project creation"""
         
-        return "New project! Let's do it. 🚀\n\nWhat are we building?\n- Domain/type?\n- Any connection to existing work?"
+        return "Creating new project. What should we call it?"
     
     def _handle_question(self, message: str, intent: Dict, context: Dict) -> str:
         """Handle questions"""

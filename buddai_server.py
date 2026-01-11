@@ -396,8 +396,16 @@ def safe_extract_zip(zip_path: Path, extract_path: Path):
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest, user_id: str = Header("default")):
     server_buddai = buddai_manager.get_instance(user_id)
-    response = server_buddai.chat(request.message, force_model=request.model, forge_mode=request.forge_mode)
-    return {"response": response, "message_id": server_buddai.last_generated_id}
+    result = server_buddai.chat(request.message, force_model=request.model, forge_mode=request.forge_mode)
+    
+    response_data = {
+        "response": str(result),
+        "message_id": server_buddai.last_generated_id
+    }
+    if hasattr(result, 'model'):
+        response_data['model'] = result.model
+        
+    return response_data
 
 @app.websocket("/api/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):

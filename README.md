@@ -75,7 +75,7 @@ python buddai_server.py --server
 
 ### 5. First Build
 
-```
+```txt
 You: Generate ESP32-C3 motor driver with L298N
 
 BuddAI: [Generates complete code]
@@ -94,7 +94,7 @@ BuddAI: [Generates complete code]
 
 ### Example: Teaching BuddAI once saves forever
 
-```
+```txt
 Step 1: Generate code
 You: "Generate servo control"
 BuddAI: Uses analogWrite(pin, value);  // ❌ Wrong for ESP32
@@ -113,7 +113,7 @@ BuddAI: Uses ledcWrite(channel, value);  // ✅ Automatic
 
 ### The Architecture (No Magic)
 
-```
+```txt
 User Request
     ↓
 Load recent corrections from SQLite
@@ -144,7 +144,7 @@ Return clean code
 
 14-hour comprehensive test across 10 questions:
 
-```
+```txt
 Q1:  PWM LED Control         98%  ⭐
 Q2:  Button Debouncing       95%  ⭐
 Q3:  Servo Control           89%  ✅
@@ -167,7 +167,7 @@ AVERAGE: 90% 🏆
 
 **Traditional development:**
 
-```
+```txt
 Research:  30 min
 Code:      60 min
 Debug:     60 min
@@ -176,7 +176,7 @@ Total:     150 min per module
 
 **With BuddAI:**
 
-```
+```txt
 Generate:  1 min
 Review:    10 min
 Fix:       10 min
@@ -220,9 +220,9 @@ Full guide: [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md)
 /metrics        # Show accuracy stats
 ```
 
-### The Learning Loop
+### How to Use the Learning Loop
 
-```
+```txt
 1. Generate code
 2. Review (usually 85-95% correct)
 3. If wrong: /correct <explanation>
@@ -261,7 +261,7 @@ Result: Permanent improvement
 
 ## Why Local Matters
 
-```
+```txt
 Cloud AI:           BuddAI:
 💰 $20-200/month   ✅ FREE forever
 🚫 Filtered        ✅ No restrictions
@@ -318,7 +318,7 @@ Cloud AI:           BuddAI:
 
 ### Month 1
 
-```
+```txt
 Patterns: 244 → 330
 Boards: ESP32-C3
 Accuracy: 90%
@@ -326,7 +326,7 @@ Accuracy: 90%
 
 ### Month 3
 
-```
+```txt
 Patterns: 330 → 600
 Boards: ESP32-C3, Arduino, STM32
 Accuracy: 90-92%
@@ -334,7 +334,7 @@ Accuracy: 90-92%
 
 ### Month 6
 
-```
+```txt
 Patterns: 600 → 1,000+
 Boards: 6+ platforms
 Accuracy: 92-95%

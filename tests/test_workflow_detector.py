@@ -9,6 +9,15 @@ from core.workflow_detector import WorkflowDetector, get_workflow_detector
 class MockWorkflow(Workflow):
     """Mock workflow for testing"""
     
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+        self.steps = []
+        super().__init__()
+
+    def add_step(self, name, description, action):
+        self.steps.append(WorkflowStep(name, action, {'description': description}))
+
     def detect(self, user_input: str) -> float:
         if 'mock' in user_input.lower():
             return 0.9
