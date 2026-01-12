@@ -33,6 +33,7 @@ import argparse
 import io
 import difflib
 from urllib.parse import urlparse
+import urllib.request
 
 try:
     import qrcode
@@ -1431,6 +1432,55 @@ class BuddAI:
         conn.close()
         print(f"✅ Indexed {count} functions across repositories")
 
+    def index_gists(self) -> None:
+        """Index Gists defined in core/gist_memory.txt"""
+        gist_path = Path(__file__).parent.parent / "core" / "gist_memory.txt"
+        
+        if not gist_path.exists():
+            print(f"❌ Gist memory file not found at {gist_path}")
+            return
+
+        print(f"\n🔍 Indexing Gists from: {gist_path}")
+        
+        try:
+            with open(gist_path, 'r', encoding='utf-8') as f:
+                urls = [line.strip() for line in f if line.strip().startswith('http')]
+        except Exception as e:
+            print(f"❌ Error reading gist file: {e}")
+            return
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        count = 0
+        
+        for url in urls:
+            try:
+                print(f"   - Fetching {url}...", end="\r")
+                with urllib.request.urlopen(url) as response:
+                    content = response.read().decode('utf-8')
+                
+                filename = url.split('/')[-1]
+                if not filename or filename == "raw":
+                    filename = "gist_content"
+                
+                timestamp = datetime.now()
+                
+                cursor.execute("DELETE FROM repo_index WHERE file_path = ? AND user_id = ?", (url, self.user_id))
+                
+                cursor.execute("""
+                    INSERT INTO repo_index (user_id, file_path, repo_name, function_name, content, last_modified)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (self.user_id, url, "Gist Memory", filename, content, timestamp.isoformat()))
+                
+                count += 1
+            except Exception as e:
+                print(f"   ❌ Failed to fetch {url}: {e}")
+                
+        conn.commit()
+        conn.close()
+        print(f"\n✅ Indexed {count} Gists.                         ")
+
     def retrieve_style_context(self, message: str) -> str:
         """Search repo_index for code snippets matching the request"""
         # Extract potential keywords (nouns/modules)
@@ -2741,6 +2791,7 @@ FINAL CHECK:
                         print("/fast - Use fast model")
                         print("/balanced - Use balanced model")
                         print("/index <path> - Index local repositories")
+                        print("/index gists - Index Gist memory file")
                         print("/scan - Scan style signature (V3.0)")
                         print("/learn - Extract patterns from corrections")
                         print("/analyze - Analyze session for implicit feedback")
@@ -2759,9 +2810,12 @@ FINAL CHECK:
                     elif cmd.startswith('/index'):
                         parts = user_input.split(maxsplit=1)
                         if len(parts) > 1:
-                            self.index_local_repositories(parts[1])
+                            if parts[1].lower() == 'gists':
+                                self.index_gists()
+                            else:
+                                self.index_local_repositories(parts[1])
                         else:
-                            print("Usage: /index <path_to_repos>")
+                            print("Usage: /index <path_to_repos> or /index gists")
                         continue
                     elif cmd == '/scan':
                         self.scan_style_signature()

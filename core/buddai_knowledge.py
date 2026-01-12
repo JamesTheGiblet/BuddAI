@@ -1,8 +1,10 @@
 import sqlite3
 import re
 import ast
+from typing import List
 from pathlib import Path
 from datetime import datetime
+from core.gist_loader import GistLoader
 
 class RepoManager:
     """Manages local repository indexing and retrieval (RAG)"""
@@ -10,6 +12,7 @@ class RepoManager:
     def __init__(self, db_path: Path, user_id: str):
         self.db_path = db_path
         self.user_id = user_id
+        self.gist_loader = GistLoader(db_path)
 
     def is_search_query(self, message: str) -> bool:
         """Check if this is a search query that should query repo_index"""
@@ -148,6 +151,19 @@ class RepoManager:
         conn.commit()
         conn.close()
         print(f"✅ Indexed {count} functions across repositories")
+
+    def index_gists(self, silent: bool = False) -> None:
+        """Index Gists defined in core/gist_memory.txt"""
+        self.gist_loader.index_gists(self.user_id, silent=silent)
+
+    def list_indexed_gists(self) -> List[str]:
+        """List all indexed Gists"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT function_name, file_path FROM repo_index WHERE repo_name = 'Gist Memory' AND user_id = ?", (self.user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [f"- {name}: {url}" for name, url in rows]
 
     def retrieve_style_context(self, message: str, prompt_template: str, user_name: str) -> str:
         """Search repo_index for code snippets matching the request"""

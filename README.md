@@ -1,11 +1,11 @@
 # BuddAI: Your Personal AI Exocortex
 
-> **A local code generator that remembers your corrections and gets better every time you use it.**
+> **Your Coding Buddy - Not Just a Tool. A local AI partner that remembers your projects, learns your style, and gets better every time you use it.**
 
-[![Tests](https://img.shields.io/badge/tests-342%20passing-brightgreen)](VALIDATION_REPORT.md)
+[![Tests](https://img.shields.io/badge/tests-379%20passing-brightgreen)](VALIDATION_REPORT.md)
 [![Accuracy](https://img.shields.io/badge/ESP32%20accuracy-90%25-blue)](VALIDATION_REPORT.md)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.5-purple)](https://github.com/JamesTheGiblet/BuddAI)
+[![Version](https://img.shields.io/badge/version-v5.0-purple)](https://github.com/JamesTheGiblet/BuddAI)
 
 ---
 
@@ -15,11 +15,12 @@ BuddAI started as a simple idea: a local tool that remembers the corrections you
 
 ### What it can do today
 
-- Generate embedded-systems code with around 90% accuracy on ESP32 (validated over 14 hours)
-- Store your corrections permanently and reuse them automatically
-- Apply hardware-specific validation rules to catch common mistakes
-- Improve its output every time you correct it (+40-60% per iteration in testing)
-- Run fully local with no data leaving your machine
+- **Think with you:** Uses the v5.0 Personality Engine to understand intent ("thinking about a robot") without rigid commands.
+- **Remember context:** Manages multiple projects with persistent memory, recalling exactly where you left off.
+- **Generate code:** 90% accuracy on ESP32, validated over 14 hours of testing.
+- **Learn patterns:** Stores your corrections permanently and reuses them automatically.
+- **Validate output:** Applies 8 hardware-specific validators to catch common mistakes.
+- **Run locally:** 100% local execution with no data leaving your machine.
 
 ### Where it's heading
 
@@ -76,12 +77,16 @@ python buddai_server.py --server
 ### 5. First Build
 
 ```txt
-You: Generate ESP32-C3 motor driver with L298N
+You: thinking about a spinner robot
 
-BuddAI: [Generates complete code]
-        ✅ Pin definitions (auto-added)
-        ✅ Safety timeout (auto-added)
-        ✅ Your coding style applied
+BuddAI: Ah nice! Full-body spinner? 
+        Reminds me of GilBot. New project or variant?
+
+You: new one, 3kg class
+
+BuddAI: Creating new project...
+        [Interactive setup]
+        What should we build first?
 ```
 
 **That's it. You're running.**
@@ -439,8 +444,8 @@ The value is YOUR training data (6 months of corrections, 1,000+ patterns, YOUR 
 
 ## Status
 
-**Current:** v4.5  
-**Tests:** 279/279 passing  
+**Current:** v5.0  
+**Tests:** 379/379 passing  
 **Accuracy:** 90% (ESP32, validated)  
 **Patterns:** 244 learned  
 **Validators:** 8 active, 29 checks  

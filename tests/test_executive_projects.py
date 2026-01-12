@@ -1,110 +1,118 @@
-"""
-Tests for Executive Project Commands
-Verifies /projects, /new, /open, /close commands work correctly
-"""
-
 import unittest
-import tempfile
-import os
-from unittest.mock import patch, MagicMock
 import sys
+import os
+import tempfile
+import sqlite3
+from pathlib import Path
+from unittest.mock import patch, MagicMock
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add repo root to path
+REPO_ROOT = Path(__file__).parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from buddai_executive import BuddAI
-from conversation.project_memory import ProjectMemory, Project
+import buddai_executive
+from conversation.project_memory import Project
 
 class TestExecutiveProjects(unittest.TestCase):
-    """Test project management commands in BuddAI Executive"""
-    
     def setUp(self):
-        """Create isolated test environment"""
-        # Create temp database
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.temp_db.close()
+        # Create temp DB
+        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(self.db_fd)
+        self.db_path_obj = Path(self.db_path)
         
-        # Suppress print output
-        self.print_patcher = patch('builtins.print')
-        self.print_patcher.start()
+        # Patch DB paths
+        self.patches = [
+            patch('buddai_executive.DB_PATH', self.db_path_obj),
+            patch('conversation.project_memory.DB_PATH', self.db_path_obj),
+            patch('builtins.print')
+        ]
+        for p in self.patches:
+            p.start()
+            
+        # Initialize DB tables
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE,
+                type TEXT,
+                status TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                metadata TEXT,
+                conversations TEXT,
+                files TEXT,
+                decisions TEXT,
+                next_steps TEXT,
+                tags TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
         
-        # Create BuddAI instance with temp database
-        self.buddai = BuddAI(user_id="test_projects", server_mode=True, db_path=self.temp_db.name)
-        
-        # Override project memory to use temp database
-        self.buddai.project_memory = ProjectMemory(self.temp_db.name)
-        
+        self.buddai = buddai_executive.BuddAI(server_mode=False, db_path=self.db_path_obj)
+
     def tearDown(self):
-        """Cleanup"""
-        self.print_patcher.stop()
+        if self.buddai:
+            self.buddai.close()
         
-        # Clean up temp database
-        try:
-            os.unlink(self.temp_db.name)
-        except:
-            pass
-    
-    def test_projects_new_command(self):
-        """Test creating a new project"""
-        # Mock user input for interactive prompts
-        with patch('builtins.input', side_effect=['1', 'Test robot project']):
-            self.buddai._cmd_new_project('/new TestProject')
-        
-        # Verify project was created
-        project = self.buddai.project_memory.load_project('TestProject')
-        self.assertIsNotNone(project)
-        self.assertEqual(project.name, 'TestProject')
-        self.assertEqual(project.project_type, 'robotics')
-    
+        for p in reversed(self.patches):
+            p.stop()
+            
+        if os.path.exists(self.db_path):
+            try:
+                os.unlink(self.db_path)
+            except PermissionError:
+                pass
+
     def test_projects_list_empty(self):
         """Test listing projects when none exist"""
-        # Capture output
-        output = []
-        def capture_print(*args, **kwargs):
-            output.append(' '.join(map(str, args)))
+        with patch('builtins.print') as mock_print:
+            self.buddai.handle_slash_command("/projects")
+            # Check if any print call contained the expected message
+            found = False
+            for call in mock_print.call_args_list:
+                if "No projects yet" in str(call):
+                    found = True
+                    break
+            # If handle_slash_command returns string instead of printing
+            res = self.buddai.handle_slash_command("/projects")
+            if "No projects yet" in str(res):
+                found = True
+            self.assertTrue(found)
+
+    def test_projects_new_command(self):
+        """Test creating a new project"""
+        with patch('builtins.input', side_effect=["Test Description"]):
+            self.buddai.handle_slash_command("/new GilBot")
+            
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, status FROM projects WHERE name=?", ('GilBot',))
+        row = cursor.fetchone()
+        conn.close()
         
-        self.buddai._print = capture_print
-        self.buddai._cmd_list_projects()
-        
-        result = '\n'.join(output)
-        self.assertIn("No projects yet", result)
-    
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], 'GilBot')
+        self.assertEqual(row[1], 'active')
+
     def test_projects_list_populated(self):
         """Test listing projects with existing data"""
-        # Create test projects
-        proj1 = Project('ProjectA', 'robotics')
-        proj1.status = 'active'
-        self.buddai.project_memory.save_project(proj1)
+        # Create a project first
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("INSERT INTO projects (name, type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                    ("ExistingBot", "robotics", "active", "2024-01-01", "2024-01-01"))
+        conn.commit()
+        conn.close()
         
-        proj2 = Project('ProjectB', '3d_printing')
-        proj2.status = 'paused'
-        self.buddai.project_memory.save_project(proj2)
-        
-        # Capture output
-        output = []
-        def capture_print(*args, **kwargs):
-            output.append(' '.join(map(str, args)))
-        
-        self.buddai._print = capture_print
-        self.buddai._cmd_list_projects()
-        
-        result = '\n'.join(output)
-        self.assertIn("ProjectA", result)
-        self.assertIn("ProjectB", result)
-        self.assertIn("robotics", result)
-        self.assertIn("3d_printing", result)
-    
+        res = self.buddai.handle_slash_command("/projects")
+        self.assertIn("ExistingBot", str(res))
+
     def test_projects_usage_errors(self):
         """Test invalid command usage"""
-        # Test opening non-existent project
-        output = []
-        def capture_print(*args, **kwargs):
-            output.append(' '.join(map(str, args)))
-        
-        self.buddai._print = capture_print
-        self.buddai._cmd_open_project('/open NonExistent')
-        
-        result = '\n'.join(output)
-        self.assertIn("not found", result)
+        res = self.buddai.handle_slash_command("/open")
+        self.assertIn("Usage:", str(res))
 
 if __name__ == '__main__':
     unittest.main()

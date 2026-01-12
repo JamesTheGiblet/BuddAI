@@ -2,6 +2,7 @@
 from urllib.parse import urlparse
 import sys, os, json, logging, sqlite3, re, zipfile, shutil, queue, argparse, io
 import urllib.request
+import threading
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
@@ -75,6 +76,7 @@ class BuddAI:
         self.adaptive_learner = AdaptiveLearner()
         self.metrics = LearningMetrics()
         self.training_registry = get_training_registry()
+        self.fine_tuner = ModelFineTuner()
         self.conversation_protocol = ConversationProtocol(self.personality_manager)
         self.repo_manager = RepoManager(self.db_path, self.user_id)
         self.llm = OllamaClient()
@@ -91,9 +93,24 @@ class BuddAI:
         
         logger.info("Conversational systems initialized")
         
+        # Auto-index Gists on startup
+        threading.Thread(target=self.repo_manager.index_gists, kwargs={'silent': True}, daemon=True).start()
+        
         self.display_welcome_message()
         
         print(f"\n{self.personality_manager.get_user_status()}\n")
+
+    def close(self):
+        """Cleanup resources and connections"""
+        if hasattr(self, 'storage'):
+            try:
+                self.storage.conn.close()
+            except:
+                pass
+    
+    def index_local_repositories(self, path: str):
+        """Wrapper for repo_manager indexing to satisfy architecture expectations"""
+        self.repo_manager.index_local_repositories(path)
         
     def display_welcome_message(self):
         """Display the startup banner and status."""
@@ -569,6 +586,16 @@ class BuddAI:
     def record_feedback(self, message_id: int, feedback: bool, comment: str = "") -> Optional[str]:
         """Learn from user feedback."""
         conn = sqlite3.connect(self.db_path)
+        # Ensure table exists (Fix for Jan 7 Report)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_id INTEGER,
+                positive BOOLEAN,
+                comment TEXT,
+                timestamp TEXT
+            )
+        """)
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO feedback (message_id, positive, comment, timestamp)
@@ -808,6 +835,12 @@ class BuddAI:
                 return "✅ Correction saved. (Run /learn to process patterns)"
             return "❌ No recent message to correct."
             
+        if cmd == '/gists':
+            gists = self.repo_manager.list_indexed_gists()
+            if not gists:
+                return "🤷 No Gists indexed yet. Use /index gists to load them."
+            return "📋 Indexed Gists:\n" + "\n".join(gists)
+
         if cmd == '/knowledge':
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -1386,6 +1419,7 @@ class BuddAI:
         print("  /save           - Save current project")
         print("  /timeline       - Show project timeline")
         print("  /personality    - Manage personality (load/reload)")
+        print("  /gists          - List indexed Gists")
         print()
         print("AI Settings:")
         print("  /fast           - Use fast model")
@@ -1848,6 +1882,7 @@ class BuddAI:
                         print("/fast - Use fast model")
                         print("/balanced - Use balanced model")
                         print("/index <path> - Index local repositories")
+                        print("/gists - List indexed Gists")
                         print("/projects - Manage projects (list, new, open)")
                         print("/scan - Scan style signature (V3.0)")
                         print("/learn - Extract patterns from corrections")

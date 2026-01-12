@@ -2,6 +2,17 @@
 
 All notable changes to BuddAI will be documented in this file.
 
+## [5.0.0] - 2026-01-11
+
+### Added
+
+- Personality Engine with context-aware greetings and intent detection.
+- Project Memory System with SQLite persistence.
+- Natural Conversation Flow (Idea Exploration, Domain Detection).
+- Project Management Commands (/new, /open, /projects).
+- Cross-Project Intelligence.
+- Test coverage increased to 379 tests (100% passing).
+
 ## [4.5.0] - 2026-01-10
 
 ### Added
@@ -10,8 +21,9 @@ All notable changes to BuddAI will be documented in this file.
 - Context-Aware Rule Filtering.
 - Integration Merge Tool.
 - Fine-Tuning on corrections support.
+- Test coverage increased to 279 tests.
 
-## [4.0.0] - 2026-01-10
+## [4.0.0] - 2026-01-08
 
 ### Added
 
@@ -30,7 +42,7 @@ All notable changes to BuddAI will be documented in this file.
 ### Changed
 
 - Refactored to modular architecture with clean separation of concerns
-- Improved test coverage from 129 to 265 tests
+- Improved test coverage from 57 to 125 tests
 - Enhanced memory management with decay algorithms
 - Upgraded database efficiency with pattern merging
 - Better code organization with registry patterns
@@ -45,7 +57,7 @@ All notable changes to BuddAI will be documented in this file.
 
 ### Technical
 
-- 265 comprehensive tests (100% passing)
+- 125 comprehensive tests (100% passing)
 - Modular architecture
 - Exponential decay algorithms
 - Levenshtein distance matching

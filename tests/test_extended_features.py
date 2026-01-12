@@ -12,17 +12,15 @@ import sqlite3
 import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
-import importlib.util
 import urllib.request
 
-# Dynamic import setup
+# Add repo root to path
 REPO_ROOT = Path(__file__).parent.parent
-MODULE_PATH = REPO_ROOT / "buddai_executive.py"
-spec = importlib.util.spec_from_file_location("buddai_executive", MODULE_PATH)
-buddai_module = importlib.util.module_from_spec(spec)
-sys.modules["buddai_executive"] = buddai_module
-spec.loader.exec_module(buddai_module)
-BuddAI = buddai_module.BuddAI
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+import buddai_executive
+import core.buddai_shared
+BuddAI = buddai_executive.BuddAI
 
 class TestExtendedFeatures(unittest.TestCase):
     def setUp(self):
@@ -31,25 +29,59 @@ class TestExtendedFeatures(unittest.TestCase):
         os.close(self.db_fd)
         self.db_path_obj = Path(self.db_path)
         
-        # Manual Patch of the imported module's DB_PATH
-        self.original_db_path = buddai_module.DB_PATH
-        buddai_module.DB_PATH = self.db_path_obj
+        # Patch DB paths in both executive and shared modules
+        self.patches = [
+            patch('buddai_executive.DB_PATH', self.db_path_obj),
+            patch('core.buddai_shared.DB_PATH', self.db_path_obj),
+            patch('builtins.print')
+        ]
         
-        # Suppress prints
-        self.print_patcher = patch("builtins.print")
-        self.print_patcher.start()
+        for p in self.patches:
+            p.start()
+            
+        # Initialize DB tables required for tests
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("CREATE TABLE IF NOT EXISTS repo_index (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, file_path TEXT, repo_name TEXT, function_name TEXT, content TEXT, last_modified TIMESTAMP)")
+        conn.execute("CREATE TABLE IF NOT EXISTS code_rules (rule_text TEXT, pattern_find TEXT, pattern_replace TEXT, confidence REAL, learned_from TEXT)")
+        conn.execute("CREATE TABLE IF NOT EXISTS style_preferences (user_id TEXT, category TEXT, preference TEXT, confidence REAL, extracted_at TEXT)")
+        conn.execute("CREATE TABLE IF NOT EXISTS compilation_log (id INTEGER PRIMARY KEY, timestamp TEXT, code TEXT, success BOOLEAN, errors TEXT, hardware TEXT)")
+        conn.execute("CREATE TABLE IF NOT EXISTS corrections (id INTEGER PRIMARY KEY, timestamp TEXT, original_code TEXT, corrected_code TEXT, reason TEXT, context TEXT, processed BOOLEAN)")
+        conn.execute("CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY, message_id INTEGER, positive BOOLEAN, comment TEXT, timestamp TEXT)")
+        conn.commit()
+        conn.close()
+        
+        # Patch index_gists to prevent background thread from polluting DB or printing
+        self.gist_patcher = patch('core.buddai_knowledge.RepoManager.index_gists')
+        self.gist_patcher.start()
         
         # Initialize BuddAI
-        self.buddai = BuddAI(server_mode=False)
+        self.buddai = BuddAI(server_mode=False, db_path=self.db_path_obj)
 
     def tearDown(self):
-        # Restore DB_PATH
-        buddai_module.DB_PATH = self.original_db_path
-        self.print_patcher.stop()
-        try:
-            os.unlink(self.db_path)
-        except:
-            pass
+        self.gist_patcher.stop()
+        for p in reversed(self.patches):
+            p.stop()
+        
+        # Close connections if any (BuddAI might have opened some)
+        if hasattr(self.buddai, 'storage') and hasattr(self.buddai.storage, 'conn'):
+            try:
+                self.buddai.storage.conn.close()
+            except:
+                pass
+        
+        # Force garbage collection to release file handles
+        self.buddai = None
+        import gc
+        gc.collect()
+        
+        if os.path.exists(self.db_path):
+            for _ in range(5):
+                try:
+                    os.unlink(self.db_path)
+                    break
+                except PermissionError:
+                    import time
+                    time.sleep(0.1)
 
     # Test 16: Personality Forge Config
     def test_personality_forge_config(self):
@@ -125,8 +157,7 @@ class TestExtendedFeatures(unittest.TestCase):
     def test_style_summary(self):
         """Test retrieval of style preferences from DB"""
         conn = sqlite3.connect(self.db_path)
-        conn.execute("CREATE TABLE IF NOT EXISTS style_preferences (category TEXT, preference TEXT, confidence REAL)")
-        conn.execute("INSERT INTO style_preferences VALUES ('Naming', 'camelCase', 0.9)")
+        conn.execute("INSERT INTO style_preferences (user_id, category, preference, confidence, extracted_at) VALUES ('default', 'Naming', 'camelCase', 0.9, '2024-01-01')")
         conn.commit()
         conn.close()
         
@@ -137,8 +168,7 @@ class TestExtendedFeatures(unittest.TestCase):
     def test_learned_rules_retrieval(self):
         """Test retrieval of high-confidence rules"""
         conn = sqlite3.connect(self.db_path)
-        conn.execute("CREATE TABLE IF NOT EXISTS code_rules (rule_text TEXT, pattern_find TEXT, pattern_replace TEXT, confidence REAL)")
-        conn.execute("INSERT INTO code_rules VALUES ('Use const', 'int ', 'const int ', 0.85)")
+        conn.execute("INSERT INTO code_rules (rule_text, pattern_find, pattern_replace, confidence, learned_from) VALUES ('Use const', 'int ', 'const int ', 0.85, 'manual')")
         conn.commit()
         conn.close()
         
@@ -255,6 +285,199 @@ class TestExtendedFeatures(unittest.TestCase):
                     
                     res = self.buddai.handle_slash_command("/personality load http://test.com/p.txt")
                     self.assertIn("updated and reloaded", res)
+
+    # Test 32: Slash Command /gists
+    def test_slash_command_gists(self):
+        """Test /gists command lists indexed gists"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO repo_index (user_id, file_path, repo_name, function_name, content, last_modified)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, ("default", "https://gist.github.com/user/123", "Gist Memory", "my_gist.py", "print('hello')", "2024-01-01T12:00:00"))
+        conn.commit()
+        conn.close()
+        
+        resp = self.buddai.handle_slash_command("/gists")
+        self.assertIn("my_gist.py", resp)
+        self.assertIn("https://gist.github.com/user/123", resp)
+
+    # Test 33: Slash Command /train
+    def test_slash_command_train(self):
+        """Test /train command listing and execution"""
+        # Mock registry
+        self.buddai.training_registry = MagicMock()
+        self.buddai.training_registry.list_strategies.return_value = {"test_strat": "Test Desc"}
+        
+        # Mock strategy
+        mock_strat = MagicMock()
+        mock_strat.run.return_value = "Strategy Ran"
+        self.buddai.training_registry.get_strategy.side_effect = lambda x: mock_strat if x == "test_strat" else None
+
+        # Test List
+        res = self.buddai.handle_slash_command("/train")
+        self.assertIn("test_strat", res)
+        self.assertIn("Test Desc", res)
+
+        # Test Run
+        res = self.buddai.handle_slash_command("/train test_strat arg1")
+        self.assertIn("Strategy Ran", res)
+        mock_strat.run.assert_called_with(self.buddai, ["arg1"])
+
+        # Test Unknown
+        res = self.buddai.handle_slash_command("/train unknown")
+        self.assertIn("Unknown training strategy", res)
+
+    # Test 34: GistLoader Silent Mode
+    def test_gist_loader_silent(self):
+        """Test GistLoader silent mode suppresses output"""
+        with patch('builtins.print') as mock_print:
+            # Mock file existence to avoid actual file check printing if not silent
+            with patch('pathlib.Path.exists', return_value=False):
+                 self.buddai.repo_manager.index_gists(silent=True)
+                 mock_print.assert_not_called()
+
+    # Test 35: List Indexed Gists Empty
+    def test_list_indexed_gists_empty(self):
+        """Test listing gists when none exist"""
+        # Ensure DB is empty for gists
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM repo_index WHERE repo_name = 'Gist Memory'")
+        conn.commit()
+        conn.close()
+        
+        gists = self.buddai.repo_manager.list_indexed_gists()
+        self.assertEqual(gists, [])
+
+    # Test 36: Retrieve Style Context No Keywords
+    def test_retrieve_style_context_no_keywords(self):
+        """Test style context retrieval with no keywords"""
+        ctx = self.buddai.repo_manager.retrieve_style_context("hi", "Template {user_name}", "User")
+        self.assertEqual(ctx, "")
+
+    # Test 37: Retrieve Style Context With Keywords
+    def test_retrieve_style_context_keywords(self):
+        """Test style context retrieval with keywords"""
+        # Insert mock data
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("INSERT INTO repo_index (user_id, repo_name, function_name, content, last_modified) VALUES (?, ?, ?, ?, ?)",
+                     ("default", "TestRepo", "test_func", "code content", "2024-01-01"))
+        conn.commit()
+        conn.close()
+        
+        ctx = self.buddai.repo_manager.retrieve_style_context("how does test_func work", "Template {user_name}", "User")
+        self.assertIn("Template User", ctx)
+        self.assertIn("test_func", ctx)
+
+    # Test 38: Initiate Conversation
+    def test_initiate_conversation(self):
+        """Test conversation initiation"""
+        with patch.object(self.buddai, 'call_model', return_value='"Hello User"'):
+            self.buddai.initiate_conversation()
+            # Check if message saved
+            self.assertEqual(self.buddai.context_messages[-1]['role'], 'assistant')
+            self.assertIn("Hello User", self.buddai.context_messages[-1]['content'])
+
+    # Test 39: Slash Command /knowledge
+    def test_slash_command_knowledge(self):
+        """Test /knowledge command"""
+        # Insert rule
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("INSERT INTO code_rules (rule_text, learned_from) VALUES (?, ?)", ("Rule 1", "manual"))
+        conn.commit()
+        conn.close()
+        
+        res = self.buddai.handle_slash_command("/knowledge")
+        self.assertIn("manual", res)
+        self.assertIn("1 rules", res)
+
+    # Test 40: Slash Command /fallback-stats
+    def test_slash_command_fallback_stats(self):
+        """Test /fallback-stats command"""
+        with patch.object(self.buddai.metrics, 'get_fallback_stats', return_value={'total_escalations': 5, 'fallback_rate': 10, 'learning_success': 50}):
+            res = self.buddai.handle_slash_command("/fallback-stats")
+            self.assertIn("Total escalations: 5", res)
+
+    # Test 41: Slash Command /skills
+    def test_slash_command_skills(self):
+        """Test /skills command"""
+        self.buddai.skills_registry = {'test': {'name': 'Test Skill', 'description': 'Testing'}}
+        res = self.buddai.handle_slash_command("/skills")
+        self.assertIn("Test Skill", res)
+
+    # Test 42: Slash Command /reload
+    def test_slash_command_reload(self):
+        """Test /reload command"""
+        with patch('skills.load_registry', return_value={'new': 'skill'}):
+            res = self.buddai.handle_slash_command("/reload")
+            self.assertIn("Reloaded 1 skills", res)
+            self.assertEqual(self.buddai.skills_registry, {'new': 'skill'})
+
+    # Test 43: Slash Command /language list
+    def test_slash_command_language_list(self):
+        """Test /language list command"""
+        with patch.object(self.buddai.language_registry, 'get_supported_languages', return_value=['python']):
+            mock_skill = MagicMock()
+            mock_skill.name = "Python"
+            mock_skill.file_extensions = ['.py']
+            with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=mock_skill):
+                res = self.buddai.handle_slash_command("/language list")
+                self.assertIn("Python", res)
+                self.assertIn(".py", res)
+
+    # Test 44: Slash Command /language unknown
+    def test_slash_command_language_unknown(self):
+        """Test /language with unknown language"""
+        with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=None):
+            res = self.buddai.handle_slash_command("/language unknown action")
+            self.assertIn("not supported", res)
+
+    # Test 45: Slash Command /language patterns
+    def test_slash_command_language_patterns(self):
+        """Test /language patterns command"""
+        mock_skill = MagicMock()
+        mock_skill.name = "Python"
+        mock_skill.get_patterns.return_value = {'pat1': {'description': 'desc', 'example': 'ex'}}
+        with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=mock_skill):
+            res = self.buddai.handle_slash_command("/language python patterns")
+            self.assertIn("pat1", res)
+            self.assertIn("desc", res)
+
+    # Test 46: Slash Command /language practices
+    def test_slash_command_language_practices(self):
+        """Test /language practices command"""
+        mock_skill = MagicMock()
+        mock_skill.name = "Python"
+        mock_skill.get_best_practices.return_value = ["Practice 1"]
+        with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=mock_skill):
+            res = self.buddai.handle_slash_command("/language python practices")
+            self.assertIn("Practice 1", res)
+
+    # Test 47: Slash Command /language template
+    def test_slash_command_language_template(self):
+        """Test /language template command"""
+        mock_skill = MagicMock()
+        mock_skill.get_template.return_value = "def main(): pass"
+        with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=mock_skill):
+            res = self.buddai.handle_slash_command("/language python template basic")
+            self.assertIn("def main(): pass", res)
+
+    # Test 48: Slash Command /language template missing
+    def test_slash_command_language_template_missing(self):
+        """Test /language template command with missing template"""
+        mock_skill = MagicMock()
+        mock_skill.get_template.return_value = None
+        with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=mock_skill):
+            res = self.buddai.handle_slash_command("/language python template unknown")
+            self.assertIn("not found", res)
+
+    # Test 49: Slash Command /language invalid action
+    def test_slash_command_language_invalid_action(self):
+        """Test /language with invalid action"""
+        mock_skill = MagicMock()
+        with patch.object(self.buddai.language_registry, 'get_skill_by_name', return_value=mock_skill):
+            res = self.buddai.handle_slash_command("/language python invalid")
+            self.assertIn("Unknown action", res)
 
 if __name__ == '__main__':
     unittest.main()

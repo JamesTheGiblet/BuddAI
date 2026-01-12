@@ -47,10 +47,26 @@ class TestQAMemory(unittest.TestCase):
             self.buddai = BuddAI(db_path=self.db_path)
 
     def tearDown(self):
+        # Close connections via new method
+        if self.buddai:
+            self.buddai.close()
+        
+        # Force garbage collection to release file handles
+        self.buddai = None
+        import gc
+        gc.collect()
+
         for p in reversed(self.patches):
             p.stop()
+            
         if os.path.exists(self.db_path):
-            os.unlink(self.db_path)
+            for _ in range(5):
+                try:
+                    os.unlink(self.db_path)
+                    break
+                except PermissionError:
+                    import time
+                    time.sleep(0.1)
 
     def test_index_good_response(self):
         """Test that index_good_response correctly saves Q&A pairs"""
