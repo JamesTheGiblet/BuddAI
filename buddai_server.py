@@ -330,6 +330,7 @@ async def root(request: Request):
                 </div>
                 <div class="links">
                     <a href="/web">Launch Web UI</a>
+                    <a href="/mobile">Mobile UI</a>
                     <a href="/docs" class="secondary">API Docs</a>
                 </div>
                 {ip_section}
@@ -354,6 +355,10 @@ async def favicon_32():
 @app.get("/favicon-192x192.png", include_in_schema=False)
 async def favicon_192():
     return FileResponse(Path(__file__).parent / "icons" / "favicon-192x192.png")
+
+@app.get("/mobile")
+async def mobile_page():
+    return FileResponse(Path(__file__).parent / "mobile.html")
 
 def validate_upload(file: UploadFile) -> bool:
     # Check size

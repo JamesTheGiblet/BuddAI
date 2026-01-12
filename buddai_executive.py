@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from urllib.parse import urlparse
 import sys, os, json, logging, sqlite3, re, zipfile, shutil, queue, argparse, io
+import urllib.request
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
@@ -30,6 +31,7 @@ from core.buddai_storage import StorageManager
 from validators.registry import ValidatorRegistry
 from skills import load_registry
 from languages.language_registry import get_language_registry
+from training import get_training_registry
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,7 @@ class BuddAI:
         self.fallback_client = FallbackClient()
         self.adaptive_learner = AdaptiveLearner()
         self.metrics = LearningMetrics()
-        self.fine_tuner = ModelFineTuner()
+        self.training_registry = get_training_registry()
         self.conversation_protocol = ConversationProtocol(self.personality_manager)
         self.repo_manager = RepoManager(self.db_path, self.user_id)
         self.llm = OllamaClient()
@@ -232,18 +234,25 @@ class BuddAI:
             return "Standard coding style."
         return ", ".join([f"{r[0]}: {r[1]}" for r in rows])
 
-    def teach_rule(self, rule_text: str):
-        """Explicitly save a user-taught rule"""
+    def teach_rule(self, rule_text: str, source: str = 'user_taught') -> bool:
+        """Explicitly save a user-taught rule. Returns True if new, False if duplicate."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
+        # Check for duplicate to prevent spamming from auto-discovery
+        cursor.execute("SELECT 1 FROM code_rules WHERE rule_text = ?", (rule_text,))
+        if cursor.fetchone():
+            conn.close()
+            return False
+
         cursor.execute("""
             INSERT INTO code_rules 
             (rule_text, pattern_find, pattern_replace, confidence, learned_from)
             VALUES (?, ?, ?, ?, ?)
-        """, (rule_text, "", "", 1.0, 'user_taught'))
+        """, (rule_text, "", "", 1.0, source))
         conn.commit()
         conn.close()
+        return True
 
     def log_compilation_result(self, code: str, success: bool, errors: str = ""):
         """Track what compiles vs what fails"""
@@ -462,6 +471,101 @@ class BuddAI:
         
         return generated_code
 
+    def index_good_response(self, message_id: int):
+        """Index a highly-rated response for future reference (RAG)"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Create table if not exists
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS qa_memory (
+                    id INTEGER PRIMARY KEY,
+                    question TEXT,
+                    answer TEXT,
+                    timestamp TEXT,
+                    tags TEXT
+                )
+            """)
+            
+            # Get the response
+            cursor.execute("SELECT session_id, content FROM messages WHERE id = ?", (message_id,))
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return
+                
+            session_id, answer = row
+            
+            # Get the preceding question
+            cursor.execute("""
+                SELECT content FROM messages 
+                WHERE session_id = ? AND id < ? AND role = 'user' 
+                ORDER BY id DESC LIMIT 1
+            """, (session_id, message_id))
+            
+            q_row = cursor.fetchone()
+            if q_row:
+                question = q_row[0]
+                # Check duplicates
+                cursor.execute("SELECT 1 FROM qa_memory WHERE question = ? AND answer = ?", (question, answer))
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "INSERT INTO qa_memory (question, answer, timestamp, tags) VALUES (?, ?, ?, ?)",
+                        (question, answer, datetime.now().isoformat(), "verified")
+                    )
+                    print(f"📚 Indexed Q&A pair for future reference.")
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to index response: {e}")
+
+    def retrieve_relevant_qa(self, query: str) -> str:
+        """Retrieve relevant Q&A pairs from memory"""
+        try:
+            # Simple keyword matching for now
+            keywords = [w for w in query.lower().split() if len(w) > 3]
+            if not keywords:
+                return ""
+                
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check if table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='qa_memory'")
+            if not cursor.fetchone():
+                conn.close()
+                return ""
+                
+            # Build query
+            conditions = []
+            params = []
+            for kw in keywords:
+                conditions.append("question LIKE ?")
+                params.append(f"%{kw}%")
+                
+            if not conditions:
+                conn.close()
+                return ""
+                
+            sql = f"SELECT question, answer FROM qa_memory WHERE {' OR '.join(conditions)} ORDER BY id DESC LIMIT 2"
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            conn.close()
+            
+            if rows:
+                context = "\n[RELEVANT PAST SOLUTIONS]\n"
+                for q, a in rows:
+                    # Truncate answer if too long to save context window
+                    preview = a[:500] + "..." if len(a) > 500 else a
+                    context += f"Q: {q}\nA: {preview}\n---\n"
+                return context
+            return ""
+        except Exception as e:
+            logger.error(f"Error retrieving QA: {e}")
+            return ""
+
     def record_feedback(self, message_id: int, feedback: bool, comment: str = "") -> Optional[str]:
         """Learn from user feedback."""
         conn = sqlite3.connect(self.db_path)
@@ -475,6 +579,9 @@ class BuddAI:
         
         # Adjust confidence scores
         self.update_style_confidence(message_id, feedback)
+        
+        if feedback:
+            self.index_good_response(message_id)
         
         if not feedback:
             self.analyze_failure(message_id)
@@ -700,6 +807,25 @@ class BuddAI:
                 self.save_correction(last_response, "", reason)
                 return "✅ Correction saved. (Run /learn to process patterns)"
             return "❌ No recent message to correct."
+            
+        if cmd == '/knowledge':
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            try:
+                cursor.execute("SELECT learned_from, COUNT(*) FROM code_rules GROUP BY learned_from ORDER BY COUNT(*) DESC")
+                rows = cursor.fetchall()
+                if not rows:
+                    return "🤷 No knowledge sources found."
+                
+                output = "📚 Knowledge Sources:\n"
+                for source, count in rows:
+                    source_name = source if source else "Unknown"
+                    output += f"  - {source_name}: {count} rules\n"
+                return output
+            except Exception as e:
+                return f"❌ Error querying knowledge: {e}"
+            finally:
+                conn.close()
 
         if cmd == '/rules':
             conn = sqlite3.connect(self.db_path)
@@ -799,9 +925,41 @@ class BuddAI:
                 return f"✅ Database backed up to: {msg}"
             return f"❌ Backup failed: {msg}"
 
-        if cmd == '/train':
-            result = self.fine_tuner.prepare_training_data()
-            return f"✅ {result}"
+        if cmd == '/stuck':
+            return (
+                "🆘 **Stuck? Here are some tools to help:**\n\n"
+                "1. **Wikipedia:** Type `wiki <term>` to search concepts.\n"
+                "2. **Search:** Type `find <term>` to search your local repos.\n"
+                "3. **Debug:** Type `/debug` to see what context I have.\n"
+                "4. **Breakdown:** Ask \"Break this down into steps\" to simplify."
+            )
+
+        if cmd == '/remember':
+            if self.last_generated_id:
+                self.index_good_response(self.last_generated_id)
+                return "✅ Response indexed for future reference."
+            return "❌ No recent response to remember."
+
+        if cmd.startswith('/train'):
+            parts = command.split(maxsplit=2)
+            if len(parts) < 2:
+                strategies = self.training_registry.list_strategies()
+                output = "🎓 Training Strategies:\n"
+                for name, desc in strategies.items():
+                    output += f"  - /train {name}: {desc}\n"
+                return output
+            
+            strategy_name = parts[1]
+            strategy = self.training_registry.get_strategy(strategy_name)
+            if not strategy:
+                return f"❌ Unknown training strategy: {strategy_name}"
+            
+            args = parts[2].split() if len(parts) > 2 else []
+            try:
+                return strategy.run(self, args)
+            except Exception as e:
+                return f"❌ Training error: {e}"
+  
             
         if cmd == '/logs':
             log_path = DATA_DIR / "external_prompts.log"
@@ -822,6 +980,9 @@ class BuddAI:
 
         if cmd.startswith('/language'):
             return self._handle_language_command(command)
+
+        if cmd.startswith('/personality'):
+            return self._handle_personality_command(command)
 
         return f"Command {cmd.split()[0]} not supported in chat mode."
 
@@ -898,6 +1059,76 @@ class BuddAI:
         else:
             return f"Unknown action: {action}\nActions: patterns, practices, template"
 
+    def _handle_personality_command(self, command: str) -> str:
+        """Handle /personality command to load/reload personality"""
+        parts = command.split(maxsplit=2)
+        if len(parts) < 2:
+            return "Usage: /personality <load|reload> [url]"
+        
+        action = parts[1].lower()
+        
+        if action == 'load':
+            if len(parts) < 3:
+                return "Usage: /personality load <url>"
+            
+            url = parts[2].strip()
+            try:
+                print(f"⬇️ Fetching personality from {url}...")
+                
+                req = urllib.request.Request(
+                    url, 
+                    headers={'User-Agent': 'BuddAI/5.0'}
+                )
+                
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    if response.status != 200:
+                        return f"❌ HTTP Error: {response.status}"
+                    content = response.read().decode('utf-8')
+                
+                # Validate JSON
+                try:
+                    data = json.loads(content)
+                except json.JSONDecodeError as e:
+                    # Fallback: Check if it's a text/markdown personality description
+                    if content.strip().startswith('#'):
+                        print("⚠️ JSON parse failed, treating as text personality description...")
+                        # Load existing personality to update it
+                        personality_path = DATA_DIR.parent / "personality.json"
+                        if personality_path.exists():
+                            with open(personality_path, 'r', encoding='utf-8') as f:
+                                data = json.load(f)
+                        else:
+                            data = {"identity": {}, "meta": {"version": "5.0"}}
+                        
+                        data.setdefault('identity', {})['persona_description'] = content
+                    else:
+                        return f"❌ Invalid JSON in personality file: {e}\nContent preview: {content[:100]}"
+                
+                # Save to file
+                personality_path = DATA_DIR.parent / "personality.json"
+                with open(personality_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+                
+                # Reload
+                self.personality_manager = PersonalityManager()
+                self.conversation_protocol = ConversationProtocol(self.personality_manager)
+                self.personality_engine = BuddAIPersonality()
+                self.personality = self.personality_engine
+                
+                return "✅ Personality updated and reloaded!"
+                
+            except Exception as e:
+                return f"❌ Error loading personality: {e}"
+                
+        elif action == 'reload':
+            self.personality_manager = PersonalityManager()
+            self.conversation_protocol = ConversationProtocol(self.personality_manager)
+            self.personality_engine = BuddAIPersonality()
+            self.personality = self.personality_engine
+            return "✅ Personality reloaded from disk."
+            
+        return "Unknown personality command."
+
     def _print(self, *args, **kwargs):
         """Wrapper for print to allow capturing output"""
         print(*args, **kwargs)
@@ -949,56 +1180,40 @@ class BuddAI:
         
         return "".join(output).strip()
 
-    def _handle_command(self, message: str) -> bool:
-        """Handle special commands"""
+    def _handle_command(self, message: str) -> Optional[str]:
+        """Handle special commands. Returns response string if handled, None otherwise."""
         
         if message.startswith('/'):
             cmd = message[1:].lower().split()[0]
             
             # Project commands
-            if cmd == 'projects':
-                self._cmd_list_projects()
-                return True
-            
-            elif cmd == 'new':
-                self._cmd_new_project(message)
-                return True
-            
-            elif cmd == 'open':
-                self._cmd_open_project(message)
-                return True
-            
-            elif cmd == 'close':
-                self._cmd_close_project()
-                return True
-            
-            elif cmd == 'save':
-                self._cmd_save_project()
-                return True
-            
-            elif cmd == 'timeline':
-                self._cmd_show_timeline()
-                return True
+            if cmd in ['projects', 'new', 'open', 'close', 'save', 'timeline']:
+                return self._handle_projects_command(message)
             
             # Existing commands
             elif cmd == 'fast':
                 self.default_mode = 'fast'
-                print("✅ Switched to FAST mode")
-                return True
+                return "✅ Switched to FAST mode"
             
             elif cmd == 'balanced':
                 self.default_mode = 'balanced'
-                print("✅ Switched to BALANCED mode")
-                return True
+                return "✅ Switched to BALANCED mode"
             
             elif cmd == 'help':
+                # Capture help output
+                output = []
+                original_print = self._print
+                def capture(*args, **kwargs):
+                    output.append(" ".join(map(str, args)))
+                self._print = capture
                 self._print_help()
-                return True
+                self._print = original_print
+                return "\n".join(output)
             
             else:
-                return False
+                return None
         
-        return False
+        return None
 
     def _cmd_list_projects(self):
         """List all projects"""
@@ -1170,6 +1385,7 @@ class BuddAI:
         print("  /close          - Close current project")
         print("  /save           - Save current project")
         print("  /timeline       - Show project timeline")
+        print("  /personality    - Manage personality (load/reload)")
         print()
         print("AI Settings:")
         print("  /fast           - Use fast model")
@@ -1216,8 +1432,9 @@ class BuddAI:
         """Main chat with smart routing and shadow suggestions"""
         
         # Intercept commands
-        if self._handle_command(user_message):
-            return ChatResponse('', model='command')
+        command_response = self._handle_command(user_message)
+        if command_response:
+            return ChatResponse(command_response, model='command')
             
         if user_message.strip().startswith('/'):
             return ChatResponse(self.handle_slash_command(user_message.strip()), model='command')
@@ -1282,6 +1499,12 @@ class BuddAI:
             self.current_hardware = detected_hw
             print(f"🔧 Target Hardware Detected: {self.current_hardware}")
 
+        # Retrieve Relevant Q&A
+        qa_context = self.retrieve_relevant_qa(user_message)
+        if qa_context:
+            print("📚 Found relevant past solution")
+            self.context_messages.append({"role": "system", "content": qa_context})
+
         prompt_template = self.personality_manager.get_value("prompts.style_reference", "\n[REFERENCE STYLE FROM {user_name}'S PAST PROJECTS]\n")
         user_name = self.personality_manager.get_value("identity.user_name", "the user")
         style_context = self.repo_manager.retrieve_style_context(user_message, prompt_template, user_name)
@@ -1298,17 +1521,6 @@ class BuddAI:
         if confidence > 0.7:
             print(f"🎯 Intent Detected: {intent} ({confidence:.2f})")
 
-        # Check Skills (High Priority)
-        skill_result = self.check_skills(user_message)
-        if skill_result:
-            msg_id = self.storage.save_message("assistant", skill_result)
-            self.last_generated_id = msg_id
-            self.context_messages.append({"id": msg_id, "role": "assistant", "content": skill_result, "timestamp": datetime.now().isoformat()})
-            return ChatResponse(skill_result, model='skill')
-
-        # Learn from conversation (Memory)
-        self.adaptive_learner.extract_conversational_facts(user_message, self)
-
         # Direct Schedule Check
         schedule_triggers = self.personality_manager.get_value("work_cycles.schedule_check_triggers", ["my schedule"])
         if any(trigger in user_message.lower() for trigger in schedule_triggers):
@@ -1319,6 +1531,17 @@ class BuddAI:
             self.last_generated_id = msg_id
             self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
             return ChatResponse(response, model='system')
+
+        # Check Skills (High Priority)
+        skill_result = self.check_skills(user_message)
+        if skill_result:
+            msg_id = self.storage.save_message("assistant", skill_result)
+            self.last_generated_id = msg_id
+            self.context_messages.append({"id": msg_id, "role": "assistant", "content": skill_result, "timestamp": datetime.now().isoformat()})
+            return ChatResponse(skill_result, model='skill')
+
+        # Learn from conversation (Memory)
+        self.adaptive_learner.extract_conversational_facts(user_message, self)
 
         response = self._route_request(user_message, force_model, forge_mode)
 
@@ -1377,16 +1600,25 @@ class BuddAI:
                 for model in models:
                     if model in active_fallbacks:
                         # Check if client is actually configured before announcing escalation
-                        if not self.fallback_client.is_available(model):
+                        if hasattr(self.fallback_client, 'is_available') and not self.fallback_client.is_available(model):
                             continue
 
                         print(f"🔄 Escalating to {model.upper()}...")
-                        result = self.fallback_client.escalate(
-                            model, user_message, response, min_confidence,
-                            validation_issues=all_issues,
-                            hardware_profile=self.current_hardware,
-                            style_preferences=style_summary
-                        )
+                        
+                        # Check if escalate supports extended arguments to avoid TypeError
+                        import inspect
+                        sig = inspect.signature(self.fallback_client.escalate)
+                        if 'validation_issues' in sig.parameters:
+                            result = self.fallback_client.escalate(
+                                model, user_message, response, min_confidence,
+                                validation_issues=all_issues,
+                                hardware_profile=self.current_hardware,
+                                style_preferences=style_summary
+                            )
+                        else:
+                            result = self.fallback_client.escalate(
+                                model, user_message, response, min_confidence
+                            )
                         
                         if "⚠️" not in result and "❌" not in result:
                             print(f"✅ Received improved solution from {model.upper()}")
@@ -1628,7 +1860,7 @@ class BuddAI:
                         print("/validate - Re-validate last response")
                         print("/rules - Show learned rules")
                         print("/metrics - Show improvement stats")
-                        print("/train - Export corrections for fine-tuning")
+                        print("/train [strategy] - Run training strategies (public_db, auto_discovery, etc)")
                         print("/save - Export chat to Markdown")
                         print("/backup - Backup database")
                         print("/help - This message")
@@ -1678,6 +1910,13 @@ class BuddAI:
                             print("✅ Feedback recorded: Positive")
                         else:
                             print("❌ No recent message to rate.")
+                        continue
+                    elif cmd == '/remember':
+                        if self.last_generated_id:
+                            self.index_good_response(self.last_generated_id)
+                            print("✅ Response indexed for future reference.")
+                        else:
+                            print("❌ No recent response to remember.")
                         continue
                     elif cmd.startswith('/teach'):
                         rule = user_input[7:].strip()
@@ -1771,9 +2010,18 @@ class BuddAI:
                         else:
                             print("❌ No prompt sent yet.")
                         continue
-                    elif cmd == '/train':
-                        result = self.fine_tuner.prepare_training_data()
-                        print(f"✅ {result}")
+                    elif cmd.startswith('/train'):
+                        parts = user_input.split(maxsplit=2)
+                        if len(parts) < 2:
+                            strategies = self.training_registry.list_strategies()
+                            print("\n🎓 Training Strategies:")
+                            for name, desc in strategies.items():
+                                print(f"  - /train {name}: {desc}")
+                            print("")
+                        else:
+                            # Delegate to handle_slash_command for execution
+                            result = self.handle_slash_command(user_input)
+                            print(result)
                         continue
                     elif cmd == '/backup':
                         success, msg = self.create_backup()

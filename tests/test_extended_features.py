@@ -11,8 +11,9 @@ import tempfile
 import sqlite3
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 import importlib.util
+import urllib.request
 
 # Dynamic import setup
 REPO_ROOT = Path(__file__).parent.parent
@@ -211,6 +212,49 @@ class TestExtendedFeatures(unittest.TestCase):
             self.buddai.analyze_failure(1)
         except Exception as e:
             self.fail(f"analyze_failure raised exception: {e}")
+
+    # Test 31: Slash Command /personality
+    def test_slash_command_personality(self):
+        """Test /personality command"""
+        # Create mock response
+        with patch('urllib.request.urlopen') as mock_urlopen:
+            mock_response = MagicMock()
+            mock_response.read.return_value = b'{"meta": {"version": "4.5"}}'
+            mock_response.status = 200
+            mock_response.__enter__.return_value = mock_response
+            mock_response.__exit__.return_value = None
+            mock_urlopen.return_value = mock_response
+
+            # JSON to be returned when reading personality.json
+            valid_personality = json.dumps({"meta": {"version": "4.5"}, "identity": {"name": "BuddAI"}})
+
+            # Mock open for writing AND reading (so PersonalityManager doesn't crash)
+            with patch('builtins.open', mock_open(read_data=valid_personality)) as mock_file:
+                # Mock PersonalityManager and others
+                with patch('buddai_executive.PersonalityManager'), \
+                     patch('buddai_executive.ConversationProtocol'), \
+                     patch('buddai_executive.BuddAIPersonality'):
+                    
+                    res = self.buddai.handle_slash_command("/personality load http://test.com/p.json")
+                    self.assertIn("updated and reloaded", res)
+
+    def test_slash_command_personality_text(self):
+        """Test /personality command with text file fallback"""
+        with patch('urllib.request.urlopen') as mock_urlopen:
+            mock_response = MagicMock()
+            mock_response.read.return_value = b'# New Persona\nYou are a coding wizard.'
+            mock_response.status = 200
+            mock_response.__enter__.return_value = mock_response
+            mock_urlopen.return_value = mock_response
+
+            valid_personality = json.dumps({"identity": {}})
+            with patch('builtins.open', mock_open(read_data=valid_personality)):
+                with patch('buddai_executive.PersonalityManager'), \
+                     patch('buddai_executive.ConversationProtocol'), \
+                     patch('buddai_executive.BuddAIPersonality'):
+                    
+                    res = self.buddai.handle_slash_command("/personality load http://test.com/p.txt")
+                    self.assertIn("updated and reloaded", res)
 
 if __name__ == '__main__':
     unittest.main()

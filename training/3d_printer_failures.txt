@@ -1,0 +1,192 @@
+# BuddAI 3D Printer Troubleshooting Database
+# 100 Common Failures and Fixes
+# Use with: /teach <rule>
+# For beginners: /explain <rule> (more detailed)
+# For experts: /quick <keyword> (just the fix)
+
+# ============================================
+# SECTION 1: BED ADHESION ISSUES (15 rules)
+# ============================================
+
+/teach First layer not sticking: Z-offset too high - lower Z by 0.05mm increments using M851 Z command
+/explain First layer not sticking: The nozzle is too far from the bed. Use babystepping (tune menu) or M851 to lower Z-offset gradually. Test with single layer square until lines fuse together without gaps.
+
+/teach Print warping at corners: Bed temperature too low - increase bed temp by 5-10°C for material type
+/explain Print warping at corners: Material cooling causes contraction. Higher bed temp keeps bottom layers warm longer, reducing stress. PLA: 60°C, PETG: 70-80°C, ABS: 100-110°C.
+
+/teach PLA not sticking: Clean bed with isopropyl alcohol, fingerprints cause adhesion failure
+/explain PLA not sticking: Skin oils create a barrier. Clean with 90%+ isopropyl alcohol before every print. For glass beds, use soap and water weekly.
+
+/teach PETG sticking too well: Bed temperature too high or no release agent - lower 5°C or use glue stick
+/explain PETG sticking too well: PETG bonds chemically to some surfaces. Lower bed to 70-75°C or apply glue stick as release agent to prevent damaging PEI sheets.
+
+/teach Print lifting mid-print: Drafts cooling print unevenly - enclose printer or block airflow
+/teach Corner lifting on large prints: Insufficient bed adhesion area - add brim or raft in slicer
+/teach First layer too squished: Z-offset too low - raise Z-offset by 0.025mm until layer visible
+/teach Nozzle dragging through first layer: Bed not level - run G29 bed leveling or manual tramming
+/teach Print slides across bed: Bed contaminated with oil/grease - clean with dish soap and water
+/teach ABS warping severely: No heated enclosure - ABS requires 50-60°C chamber temperature
+/teach First layer gaps: Nozzle too far from bed - decrease Z-offset or increase first layer flow
+/teach Elephant foot (wide first layer): Nozzle too close or bed too hot - raise Z 0.05mm or lower bed temp
+/teach TPU not sticking: Print speed too fast - reduce first layer speed to 10-15mm/s for flexible filaments
+/teach Bed leveling mesh not saving: EEPROM not enabled - enable EEPROM_SETTINGS in Marlin and M500 to save
+/teach Print detaching during print: Bed cooling down - verify bed maintains target temperature throughout
+
+# ============================================
+# SECTION 2: EXTRUSION PROBLEMS (15 rules)
+# ============================================
+
+/teach Under-extrusion (gaps in layers): Extruder steps/mm wrong - calibrate with M92 E command
+/explain Under-extrusion (gaps in layers): Printer isn't pushing enough filament. Calibrate E-steps: mark filament 120mm from extruder, extrude 100mm via M83 then G1 E100 F100, measure remaining. New steps = (100 * current_steps) / actual_extruded.
+
+/teach Over-extrusion (blobs and zits): Flow rate too high - reduce flow to 95% in slicer or M221 S95
+/explain Over-extrusion (blobs and zits): Too much plastic is being extruded. Reduce flow in 2% increments. Print 20mm cube with 0% infill, single wall, measure wall thickness = should equal nozzle diameter.
+
+/teach Filament grinding in extruder: Nozzle clogged or temp too low - increase temp 5-10°C or replace nozzle
+/teach Intermittent extrusion: Partial nozzle clog - cold pull with nylon or replace nozzle
+/explain Intermittent extrusion: Small debris in nozzle. Heat to 230°C, push filament manually, cool to 90°C, pull sharply to remove debris. Repeat with nylon filament for best results.
+
+/teach No extrusion at start: Nozzle fully clogged - heat to 260°C and push through manually or use needle
+/teach Filament snapping in tube: Brittle filament from moisture - dry filament at 50°C for 4+ hours
+/teach Extruder clicking/skipping: Too much back pressure - increase temp, decrease retraction, or clean nozzle
+/teach Inconsistent extrusion: Diameter variance in filament - check diameter with calipers, adjust flow
+/teach Stringing between parts: Retraction insufficient - increase retraction distance 1mm or speed to 45mm/s
+/teach Oozing at travel: Temperature too high - reduce nozzle temp by 5°C increments
+/teach Extruder motor overheating: Current too high - reduce to 80% with TMC current or VREF adjustment
+/teach Filament jamming in hotend: Heat creep from cooling failure - verify hotend fan running constantly
+/teach Weak layer adhesion: Printing too cold - increase temperature 5-10°C for better layer bonding
+/teach Extruder skipping on retraction: Retraction too long - reduce retraction to max 6mm for Bowden, 2mm for direct
+/teach Color contamination: Previous filament in nozzle - purge 50-100mm of new filament before printing
+
+# ============================================
+# SECTION 3: TEMPERATURE ISSUES (10 rules)
+# ============================================
+
+/teach Thermal runaway error: Heater cartridge loose or thermistor failed - check connections and resistance
+/explain Thermal runaway error: Printer detected heater isn't responding correctly. Check: 1) Thermistor not touching heater block 2) Heater cartridge screws loose 3) Thermistor resistance at room temp ~100k ohms.
+
+/teach Temperature fluctuating wildly: PID not tuned - run M303 E0 S200 C8 then M500 to save
+/explain Temperature fluctuating wildly: PID controller needs calibration. Connect via Pronterface/Octoprint, send M303 E0 S200 C8 (hotend) or M303 E-1 S60 C8 (bed), then M500 to save. S=target temp, C=cycles.
+
+/teach Heating taking too long: Insufficient power or voltage drop - check PSU voltage and heater resistance
+/teach Temperature dropping during print: Part cooling fan blowing on hotend - redirect fan or add silicone sock
+/teach MAXTEMP error on startup: Thermistor short circuit or wrong type - check wiring and TEMP_SENSOR value
+/teach MINTEMP error on startup: Thermistor disconnected or broken - check continuity and connections
+/teach Bed heating unevenly: Thermal fuse blown or bed wire damaged - check resistance across bed heater
+/teach Temperature overshoot: PID too aggressive - reduce Kp value with M301 command
+/teach Temperature oscillating: PID Ki value wrong - increase Ki for stability or retune PID
+/teach Heater doesn't heat at all: MOSFET failed or wiring issue - check MOSFET with multimeter or swap
+
+# ============================================
+# SECTION 4: MOTION & MECHANICAL (15 rules)
+# ============================================
+
+/teach Layer shifting mid-print: Belt slipping or too loose - tension belts to guitar string tightness
+/explain Layer shifting mid-print: Belts should twang like guitar strings. Too tight wears bearings, too loose causes slippage. Check pulley grub screws are tight on motor shafts.
+
+/teach X or Y axis skipping: Motor current too low - increase driver current by 50-100mA
+/explain X or Y axis skipping: Stepper drivers need sufficient current. For TMC: adjust VREF potentiometer. For A4988: VREF = Current / 1.77. Example: 800mA = 0.8 / 1.77 = 0.45V VREF.
+
+/teach Z-banding (regular pattern): Z-rod binding or coupler loose - check rod alignment and tighten coupler
+/teach Diagonal lines in print: Frame not square - measure diagonals and adjust frame bolts
+/teach Grinding noise from axis: Bearing seized or debris - clean rails and replace bad bearings
+/teach Inconsistent layer heights: Z-rod dirty or binding - clean with light oil and check vertical alignment
+/teach Loud humming from motors: Motor driver overheating - add heatsink or reduce current
+/teach Missed steps on fast moves: Acceleration too high - reduce DEFAULT_MAX_ACCELERATION in firmware
+/teach Ringing/ghosting on walls: Print speed too fast - reduce speed to 40-60mm/s or enable S-curve acceleration
+/teach Nozzle hitting prints: Z-hop not enabled - enable Z-hop 0.2mm in slicer retraction settings
+/teach Uneven Z movement: Anti-backlash nut worn - replace Z-nut or adjust spring tension
+/teach Extruder gear loose: Set screw not tight - tighten set screw on flat of motor shaft
+/teach Wobbly print head: V-slot wheels too loose - adjust eccentric nuts until slight resistance
+/teach Axis moving on power-off: Drivers not holding - enable stepper hold in Marlin with DISABLE_E/X/Y/Z false
+/teach Vibration during printing: Frame not rigid - add corner braces or weight to base
+
+# ============================================
+# SECTION 5: PRINT QUALITY DEFECTS (15 rules)
+# ============================================
+
+/teach Stringing/oozing: Retraction too short - increase retraction 0.5-1mm and test
+/explain Stringing/oozing: Filament oozes during travel moves. For Bowden: 5-7mm retraction, 45mm/s speed. For Direct: 0.5-1mm retraction. Print retraction tower to find optimal settings.
+
+/teach Blobs at layer start: Coasting not enabled - enable coasting in slicer or reduce flow 2%
+/teach Layer lines visible: Layer height too high - reduce to 0.2mm or enable variable layer height
+/teach Rough top surface: Insufficient top layers - increase to minimum 4-5 top layers
+/teach Pillowing (bumpy top): Not enough cooling - increase fan speed and add top layers
+/teach Lines not connecting: Under-extrusion - increase flow 2% or check extruder calibration
+/teach Gaps in walls: Line width too narrow - increase to 0.4-0.45mm for 0.4mm nozzle
+/teach Z-seam visible: Seam position random - set to sharpest corner in slicer
+/teach Rough overhangs: Insufficient cooling - increase fan to 100% or reduce overhang angle
+/teach Support material stuck: Interface Z distance too small - increase to 0.2mm minimum
+/teach Infill showing through walls: Wall count too low - increase perimeters to 3-4 minimum
+/teach Print brittle and breaks easily: Printing too cold - increase temp 5-10°C for better layer fusion
+/teach Glossy versus matte finish inconsistent: Temperature fluctuation - tune PID or reduce cooling changes
+/teach Small details missing: Nozzle too large - use 0.2mm or 0.3mm nozzle for fine details
+/teach Blobs on perimeter: Retraction at layer change disabled - enable retract on layer change
+
+# ============================================
+# SECTION 6: FIRST LAYER SPECIFIC (10 rules)
+# ============================================
+
+/teach First layer too fast: Speed override needed - set first layer to 15-20mm/s maximum
+/teach First layer lines separated: Flow too low - increase first layer flow to 105-110%
+/teach First layer too thin: Initial layer height too small - set to 0.2mm minimum in slicer
+/teach Nozzle too close to bed: Paper test shows resistance - raise Z until paper slides with slight drag
+/teach First layer height inconsistent: Bed not trammed - level bed at all corners with G29 mesh
+/teach First layer dragging: Live Z too low - adjust real-time during print with babystepping
+/teach Filament not extruding on first layer: Nozzle clogged with debris - clean nozzle before print
+/teach First layer lifting at edges: Print too fast or bed too cold - slow down and increase bed temp
+/teach First layer too thick: Z-offset positive - make Z-offset more negative to lower nozzle
+/teach Bed leveling changes between prints: Thermal expansion - run G28 and G29 after bed heated
+
+# ============================================
+# SECTION 7: FIRMWARE & ELECTRONICS (10 rules)
+# ============================================
+
+/teach Printer not connecting via USB: Driver not installed - install CH340 or FTDI driver for board
+/explain Printer not connecting via USB: Windows needs serial driver. Most Creality/SainSmart use CH340: download from wch.cn. Arduino boards use FTDI: ftdichip.com.
+
+/teach Random resets during print: Power supply insufficient - upgrade to 350W+ or check connections
+/teach Endstop not triggering: Wiring reversed or endstop failed - test with M119 command
+/teach Homing in wrong direction: Motor direction inverted - flip INVERT_X/Y/Z_DIR in Configuration.h
+/teach Screen freezing randomly: SD card corrupted - reformat SD card to FAT32 with 4KB clusters
+/teach Motors not moving: Drivers not enabled - check ENABLE pins and driver orientation
+/teach BLTouch not deploying: Servo signal pin wrong - verify pin in Configuration.h matches wiring
+/teach Axes moving too far: Steps per mm wrong - calibrate with M92 and measure 100mm movement
+/teach Z-probe triggering early: Electrical noise on signal wire - add capacitor or shield cable
+/teach Stepper driver overheating: Current set too high - reduce VREF or current setting to 70%
+
+# ============================================
+# SECTION 8: MATERIAL-SPECIFIC (10 rules)
+# ============================================
+
+/teach PLA printing stringy: Temperature too high - reduce to 190-210°C range
+/explain PLA printing stringy: PLA becomes too fluid above 210°C. Lower temp reduces oozing. Also check retraction settings and dry filament if stringing persists.
+
+/teach PETG stringing excessively: Retraction too short for moisture - dry filament and increase retraction
+/teach ABS cracking between layers: Enclosure too cold - maintain 50°C+ chamber temperature
+/teach TPU jamming in extruder: Print speed too fast - reduce to 20-25mm/s maximum
+/teach Nylon warping badly: No build surface adhesion - use garolite or PEI sheet with glue stick
+/teach PLA heat creep jamming: Printing too hot - reduce to 200°C or increase hotend fan speed
+/teach PETG sticking to nozzle: Temperature too high - reduce 5-10°C and increase cooling
+/teach Carbon fiber filament wearing nozzle: Brass nozzle used - replace with hardened steel nozzle
+/teach Wood filament clogging: Temperature too low - increase to 200-220°C for proper flow
+/teach White filament showing previous colors: Purge volume insufficient - purge 100mm+ when switching
+
+# ============================================
+# NEW SECTION: COMMON PITFALLS (10 rules)
+# ============================================
+
+/teach Most first layer problems are bed leveling, not Z-offset - always level first
+/teach Stringing and under-extrusion often have opposite solutions - diagnose carefully
+/teach Don't overtighten belts - causes bearing wear and motor strain
+/teach PID tuning must be done at printing temperature, not idle
+/teach E-steps calibration done cold, flow calibration done with hot printing
+/teach Z-offset changes with nozzle wear - check monthly
+/teach Different filament brands need different temperatures - always print temperature tower
+/teach Cooling settings matter more for overhangs than bridges
+/teach Nozzle size affects all other settings - recalibrate when changing nozzles
+/teach Firmware settings saved with M500, slicer settings saved in profile
+
+# ============================================
+# Total: 110 common failures with fixes
+# ============================================

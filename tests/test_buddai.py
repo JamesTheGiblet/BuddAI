@@ -597,7 +597,7 @@ class TestBuddAICore(unittest.TestCase):
             try:
                 with patch('builtins.print'):
                     # Create feedback and messages table manually for test
-                    conn = sqlite3.connect(test_db)
+                    conn = sqlite3.connect(str(test_db))
                     conn.execute("CREATE TABLE IF NOT EXISTS feedback (message_id INTEGER, positive BOOLEAN, comment TEXT, timestamp TEXT)")
                     conn.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, role TEXT, content TEXT, timestamp TIMESTAMP)")
                     conn.commit()
@@ -608,7 +608,7 @@ class TestBuddAICore(unittest.TestCase):
                 msg_id = buddai.storage.save_message("assistant", "Test response")
                 buddai.record_feedback(msg_id, True)
                 
-                conn = sqlite3.connect(test_db)
+                conn = sqlite3.connect(str(test_db))
                 cursor = conn.cursor()
                 cursor.execute("SELECT positive FROM feedback WHERE message_id = ?", (msg_id,))
                 row = cursor.fetchone()

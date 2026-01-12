@@ -1,0 +1,147 @@
+# BuddAI Marlin Firmware Training Rules
+# Generated for 3D Printer firmware development
+# Use with: /teach <rule>
+
+# ============================================
+# SECTION 1: MARLIN CONFIGURATION (20 rules)
+# ============================================
+
+/teach Marlin uses #define directives in Configuration.h and Configuration_adv.h for all settings
+/teach MOTHERBOARD must be defined before any other Marlin settings using #define MOTHERBOARD BOARD_<name>
+/teach Enable features by uncommenting #define directives, disable by commenting them out
+/teach BAUDRATE should be 115200 or 250000 for modern 3D printers
+/teach X_DRIVER_TYPE, Y_DRIVER_TYPE, Z_DRIVER_TYPE must match installed stepper drivers (A4988, TMC2209, etc)
+/teach DEFAULT_AXIS_STEPS_PER_UNIT must be calibrated for each printer (typically {80,80,400,93} for Ender-style)
+/teach DEFAULT_MAX_FEEDRATE sets maximum speed in mm/s for each axis
+/teach DEFAULT_MAX_ACCELERATION limits how fast axes can accelerate
+/teach INVERT_X_DIR, INVERT_Y_DIR, INVERT_Z_DIR reverses motor direction if homing goes wrong way
+/teach X_MIN_POS, Y_MIN_POS, Z_MIN_POS should be 0 unless using negative positions
+/teach X_BED_SIZE and Y_BED_SIZE define the printable area dimensions
+/teach Z_MAX_POS defines maximum Z height, typically 250mm for Ender-3
+/teach TEMP_SENSOR_0 defines hotend thermistor type (1 for standard, 5 for E3D, etc)
+/teach TEMP_SENSOR_BED defines bed thermistor type
+/teach HEATER_0_MAXTEMP and BED_MAXTEMP are safety limits, never exceed material ratings
+/teach PID_FUNCTIONAL_RANGE defines temperature range where PID is active (default 10°C)
+/teach Marlin requires EEPROM_SETTINGS enabled to save settings with M500
+/teach NOZZLE_TO_PROBE_OFFSET defines X,Y,Z offset from nozzle to probe tip
+/teach Z_SAFE_HOMING centers XY before homing Z to avoid bed clips
+/teach PREHEAT_1 and PREHEAT_2 define preset temperatures for PLA and ABS
+
+# ============================================
+# SECTION 2: STEPPER MOTOR CONTROL (15 rules)
+# ============================================
+
+/teach Marlin uses Stepper::synchronize() to wait for moves to complete
+/teach planner.buffer_line() queues moves, stepper ISR executes them
+/teach MINIMUM_STEPPER_PULSE defines minimum pulse width, increase if motors skip steps
+/teach MAXIMUM_STEPPER_RATE limits step frequency, typically 500000 for 8-bit boards
+/teach ADAPTIVE_STEP_SMOOTHING improves motion smoothness on 32-bit boards
+/teach TMC drivers should use #define <AXIS>_CURRENT in milliamps (typically 580-800mA)
+/teach TMC StealthChop enables silent operation, enable with #define STEALTHCHOP_<AXIS>
+/teach SENSORLESS_HOMING requires TMC2130/TMC2209 drivers with stallGuard
+/teach <AXIS>_STALL_SENSITIVITY tunes sensorless homing (LOWER = more sensitive)
+/teach Hybrid threshold switches TMC drivers from StealthChop to SpreadCycle at speed
+/teach Linear Advance (K factor) improves print quality, tune with M900 K command
+/teach S_CURVE_ACCELERATION produces smoother motion than classic jerk
+/teach SQUARE_WAVE_STEPPING increases torque at high speeds on TMC drivers
+/teach Interpolation (256 microsteps) smooths motion on TMC drivers
+/teach Always call Stepper::synchronize() before reading endstop states
+
+# ============================================
+# SECTION 3: TEMPERATURE CONTROL (15 rules)
+# ============================================
+
+/teach Temperature control uses ISR running at TEMP_TIMER_FREQUENCY (typically 72Hz)
+/teach PID tuning requires M303 E0 S<temp> C8 for hotend, M303 E-1 S<temp> C8 for bed
+/teach Store PID values with M301 P<Kp> I<Ki> D<Kd> for hotend
+/teach Store bed PID with M304 P<Kp> I<Ki> D<Kd>
+/teach PIDTEMP enables PID for hotend, PIDTEMPBED enables PID for bed
+/teach BANG_BANG control is alternative to PID for bed (faster but less stable)
+/teach THERMAL_PROTECTION_PERIOD defines timeout for runaway detection (40 seconds default)
+/teach THERMAL_PROTECTION_HYSTERESIS sets temperature variance allowed (4°C default)
+/teach WATCH_TEMP_PERIOD monitors initial heating, triggers error if too slow (20s default)
+/teach AUTOTEMP adjusts target temp based on speed, requires M109 S<min> B<max> F<factor>
+/teach thermalManager.degHotend(0) reads current hotend temperature
+/teach thermalManager.degBed() reads current bed temperature
+/teach thermalManager.setTargetHotend(temp, 0) sets hotend target temperature
+/teach Wait for temperature with thermalManager.wait_for_hotend(0) or wait_for_bed()
+/teach MAX_CONSECUTIVE_LOW_TEMPERATURE_ERROR_ALLOWED prevents false errors during probing
+
+# ============================================
+# SECTION 4: HOMING & PROBING (15 rules)
+# ============================================
+
+/teach Marlin homes with G28, individual axes with G28 X, G28 Y, G28 Z
+/teach Endstop states read with READ_<AXIS>_<MIN/MAX>_ENDSTOP() macros
+/teach ENDSTOP_INTERRUPTS_FEATURE enables interrupt-based endstop checking for reliability
+/teach Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN shares Z endstop for probe
+/teach BLTouch requires BLTOUCH defined and servo signal on correct pin
+/teach BLTouch deploy: M280 P0 S10, stow: M280 P0 S90, self-test: M280 P0 S120
+/teach AUTO_BED_LEVELING_BILINEAR stores mesh and interpolates between points
+/teach AUTO_BED_LEVELING_UBL (Unified Bed Leveling) is most advanced, stores multiple meshes
+/teach G29 runs bed leveling sequence, must home first with G28
+/teach M420 S1 enables bed leveling compensation after homing
+/teach RESTORE_LEVELING_AFTER_G28 automatically enables leveling after homing
+/teach GRID_MAX_POINTS_X and GRID_MAX_POINTS_Y define probe mesh density
+/teach Z_CLEARANCE_DEPLOY_PROBE and Z_CLEARANCE_BETWEEN_PROBES prevent collisions
+/teach MULTIPLE_PROBING averages multiple probe readings for accuracy
+/teach PROBE_OFFSET_ZMIN prevents probing below bed surface
+
+# ============================================
+# SECTION 5: MOTION PLANNING (10 rules)
+# ============================================
+
+/teach Planner converts G-code to stepper pulses using Bresenham algorithm
+/teach BLOCK_BUFFER_SIZE defines motion queue depth (16 for 8-bit, 32 for 32-bit)
+/teach Junction deviation replaces classic jerk, enable with JUNCTION_DEVIATION
+/teach S_CURVE_ACCELERATION eliminates jerk completely, smoother than junction deviation
+/teach MINIMUM_PLANNER_SPEED prevents buffer starvation during slow moves (0.05 mm/s)
+/teach Planner looks ahead up to BLOCK_BUFFER_SIZE moves for acceleration planning
+/teach planner.synchronize() blocks until all queued moves complete
+/teach current_position[] holds current logical position, updated by planner
+/teach sync_plan_position() resyncs logical position with physical position
+/teach Classic jerk (DEFAULT_XJERK, etc) sets instant velocity change allowed
+
+# ============================================
+# SECTION 6: LCD & USER INTERFACE (10 rules)
+# ============================================
+
+/teach RepRapDiscount Full Graphic Smart Controller uses REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
+/teach CR10 stock display uses CR10_STOCKDISPLAY define
+/teach Encoder direction reversed with REVERSE_ENCODER_DIRECTION
+/teach LCD_TIMEOUT_TO_STATUS returns to status screen after timeout
+/teach SDSUPPORT enables SD card printing from LCD
+/teach Status message updates with ui.set_status() or ui.set_status_P() for PROGMEM strings
+/teach LCD update cycle runs at 1000000/LCD_UPDATE_INTERVAL microseconds
+/teach Custom menus added with CUSTOM_USER_MENUS and menu entries in menus.cpp
+/teach Filament change uses M600 command, requires ADVANCED_PAUSE_FEATURE
+/teach LCD contrast adjustable with LCD_CONTRAST_MIN and LCD_CONTRAST_MAX
+
+# ============================================
+# SECTION 7: SAFETY & PROTECTION (10 rules)
+# ============================================
+
+/teach MIN_SOFTWARE_ENDSTOPS and MAX_SOFTWARE_ENDSTOPS prevent movement beyond limits
+/teach PREVENT_COLD_EXTRUSION blocks extrusion below EXTRUDE_MINTEMP (170°C default)
+/teach PREVENT_LENGTHY_EXTRUDE limits single extrude to EXTRUDE_MAXLENGTH (200mm default)
+/teach THERMAL_PROTECTION detects heater failures and thermal runaway
+/teach POWER_LOSS_RECOVERY saves position and resumes after power failure
+/teach HOST_KEEPALIVE_FEATURE sends busy messages to prevent host timeout
+/teach EMERGENCY_PARSER allows M108, M112, M410 during blocking operations
+/teach WATCHDOG_RESET_MANUAL requires manual reset after watchdog timeout
+/teach SOFT_PWM_SCALE divides PWM frequency for quieter operation (default 0 = no division)
+/teach Arc segment length (MM_PER_ARC_SEGMENT) affects arc smoothness vs performance
+
+# ============================================
+# SECTION 8: G-CODE COMMANDS (5 rules)
+# ============================================
+
+/teach M500 saves settings to EEPROM, M501 loads, M502 resets to firmware defaults
+/teach M503 reports current settings, M504 validates EEPROM data
+/teach M851 sets Z probe offset, use M851 Z-X.XX to set, M500 to save
+/teach M92 sets steps/mm, M201 max acceleration, M203 max feedrate, M204 default acceleration
+/teach G29 runs bed leveling, M420 S1 enables compensation, M421 manually edits mesh points
+
+# ============================================
+# Total: 100 rules covering Marlin firmware
+# ============================================
