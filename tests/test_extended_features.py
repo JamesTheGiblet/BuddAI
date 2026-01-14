@@ -408,7 +408,7 @@ class TestExtendedFeatures(unittest.TestCase):
     # Test 42: Slash Command /reload
     def test_slash_command_reload(self):
         """Test /reload command"""
-        with patch('skills.load_registry', return_value={'new': 'skill'}):
+        with patch.object(buddai_executive, 'load_registry', return_value={'new': 'skill'}):
             res = self.buddai.handle_slash_command("/reload")
             self.assertIn("Reloaded 1 skills", res)
             self.assertEqual(self.buddai.skills_registry, {'new': 'skill'})

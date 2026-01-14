@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
 
 import buddai_executive
 from conversation.project_memory import Project
+import conversation.project_memory
 
 class TestExecutiveProjects(unittest.TestCase):
     def setUp(self):
@@ -21,36 +22,18 @@ class TestExecutiveProjects(unittest.TestCase):
         os.close(self.db_fd)
         self.db_path_obj = Path(self.db_path)
         
+        # Reset ProjectMemory singleton and initialize with temp DB
+        self.original_project_memory = conversation.project_memory._project_memory
+        conversation.project_memory._project_memory = conversation.project_memory.ProjectMemory(self.db_path)
+        
         # Patch DB paths
         self.patches = [
             patch('buddai_executive.DB_PATH', self.db_path_obj),
-            patch('conversation.project_memory.DB_PATH', self.db_path_obj),
             patch('builtins.print')
         ]
         for p in self.patches:
             p.start()
             
-        # Initialize DB tables
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS projects (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE,
-                type TEXT,
-                status TEXT,
-                created_at TEXT,
-                updated_at TEXT,
-                metadata TEXT,
-                conversations TEXT,
-                files TEXT,
-                decisions TEXT,
-                next_steps TEXT,
-                tags TEXT
-            )
-        """)
-        conn.commit()
-        conn.close()
-        
         self.buddai = buddai_executive.BuddAI(server_mode=False, db_path=self.db_path_obj)
 
     def tearDown(self):
@@ -59,6 +42,9 @@ class TestExecutiveProjects(unittest.TestCase):
         
         for p in reversed(self.patches):
             p.stop()
+            
+        # Restore original ProjectMemory
+        conversation.project_memory._project_memory = self.original_project_memory
             
         if os.path.exists(self.db_path):
             try:
@@ -84,7 +70,7 @@ class TestExecutiveProjects(unittest.TestCase):
 
     def test_projects_new_command(self):
         """Test creating a new project"""
-        with patch('builtins.input', side_effect=["Test Description"]):
+        with patch('builtins.input', side_effect=["1", "Test Description"]):
             self.buddai.handle_slash_command("/new GilBot")
             
         conn = sqlite3.connect(self.db_path)
@@ -100,11 +86,9 @@ class TestExecutiveProjects(unittest.TestCase):
     def test_projects_list_populated(self):
         """Test listing projects with existing data"""
         # Create a project first
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("INSERT INTO projects (name, type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                    ("ExistingBot", "robotics", "active", "2024-01-01", "2024-01-01"))
-        conn.commit()
-        conn.close()
+        project = Project("ExistingBot", "robotics")
+        project.status = "active"
+        self.buddai.project_memory.save_project(project)
         
         res = self.buddai.handle_slash_command("/projects")
         self.assertIn("ExistingBot", str(res))

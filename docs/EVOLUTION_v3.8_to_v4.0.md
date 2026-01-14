@@ -1764,6 +1764,7 @@ Result: 10x capability
 **For validation details:** [VALIDATION_REPORT.md](VALIDATION_REPORT.md)  
 **For personality setup:** [PERSONALITY_GUIDE.md](PERSONALITY_GUIDE.md)  
 **For testing info:** [TESTING_SUMMARY.md](TESTING_SUMMARY.md)
+**For automated testing:** `python tests/validate_buddai.py`
 
 **Questions?** GitHub Issues or [@JamesTheGiblet](https://github.com/JamesTheGiblet)
 

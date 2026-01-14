@@ -6,10 +6,11 @@ import json
 import sqlite3
 import tempfile
 
+from buddai_executive import BuddAI
+
 # Ensure parent dir is in path to import buddai_executive
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from buddai_executive import BuddAI
 
 class TestV5Expansion(unittest.TestCase):
     """

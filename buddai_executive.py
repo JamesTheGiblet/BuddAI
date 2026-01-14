@@ -151,7 +151,7 @@ class BuddAI:
         
     def scan_style_signature(self) -> None:
         """V3.0: Analyze repo_index to extract style preferences."""
-        print("\n🕵️  Scanning repositories for style signature...")
+        self._print("\n🕵️  Scanning repositories for style signature...")
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -160,7 +160,7 @@ class BuddAI:
         rows = cursor.fetchall()
         
         if not rows:
-            print("❌ No code indexed. Run /index first.")
+            self._print("❌ No code indexed. Run /index first.")
             conn.close()
             return
             
@@ -169,7 +169,7 @@ class BuddAI:
         prompt_template = self.personality_manager.get_value("prompts.style_scan", "Analyze this code sample from {user_name}'s repositories.\nExtract 3 distinct coding preferences or patterns.\n\nCode Sample:\n{code_sample}")
         prompt = prompt_template.format(user_name=self.personality_manager.get_value("identity.user_name", "the user"), code_sample=code_sample)
         
-        print("⚡ Analyzing with BALANCED model...")
+        self._print("⚡ Analyzing with BALANCED model...")
         summary = self.call_model("balanced", prompt, system_task=True)
         
         # Store in DB
@@ -187,7 +187,7 @@ class BuddAI:
         
         conn.commit()
         conn.close()
-        print(f"\n✅ Style Signature Updated:\n{summary}\n")
+        self._print(f"\n✅ Style Signature Updated:\n{summary}\n")
 
     def get_recent_context(self, limit: int = 5) -> str:
         """Get recent chat context as a string"""
@@ -806,7 +806,7 @@ class BuddAI:
 
     def extract_code(self, text: str) -> List[str]:
         """Extract code blocks from markdown"""
-        return re.findall(r'```(?:\w+)?\n(.*?)```', text, re.DOTALL)
+        return re.findall(r'```(?:\w+)?\n(.*?)```', str(text), re.DOTALL)
 
     def handle_slash_command(self, command: str) -> str:
         """Handle slash commands when received via chat interface"""
@@ -1016,6 +1016,10 @@ class BuddAI:
 
         if cmd.startswith('/personality'):
             return self._handle_personality_command(command)
+
+        cmd_word = cmd.split()[0]
+        if cmd_word in ['/projects', '/new', '/open', '/close', '/timeline']:
+            return self._handle_projects_command(command)
 
         return f"Command {cmd.split()[0]} not supported in chat mode."
 
@@ -1282,6 +1286,9 @@ class BuddAI:
         parts = message.split(maxsplit=1)
         
         if len(parts) < 2:
+            if self.server_mode:
+                self._print("❌ Usage in server mode: /new <project_name>")
+                return
             self._print("\n💡 Creating new project...")
             self._print("What should we call it?")
             project_name = input("Project name: ").strip()
@@ -1300,13 +1307,17 @@ class BuddAI:
             return
         
         # Ask for type
-        self._print("\nWhat type of project?")
-        self._print("1. Robotics")
-        self._print("2. 3D Printing")
-        self._print("3. Web Development")
-        self._print("4. General")
-        
-        type_choice = input("Choice (1-4): ").strip()
+        if self.server_mode:
+            type_choice = '4'
+            initial_idea = "Created via Web UI"
+        else:
+            self._print("\nWhat type of project?")
+            self._print("1. Robotics")
+            self._print("2. 3D Printing")
+            self._print("3. Web Development")
+            self._print("4. General")
+            
+            type_choice = input("Choice (1-4): ").strip()
         
         type_map = {
             '1': 'robotics',
@@ -1322,7 +1333,10 @@ class BuddAI:
         
         # Add initial metadata
         project.metadata['created_by'] = 'BuddAI v5.0'
-        project.metadata['initial_idea'] = input("Brief description: ").strip()
+        if self.server_mode:
+            project.metadata['initial_idea'] = initial_idea
+        else:
+            project.metadata['initial_idea'] = input("Brief description: ").strip()
         
         # Save
         self.project_memory.save_project(project)
@@ -1433,7 +1447,7 @@ class BuddAI:
     def _extract_code_blocks(self, text: str) -> List[Dict]:
         """Extract code blocks from markdown"""
         pattern = r'```(\w+)?\n(.*?)```'
-        matches = re.findall(pattern, text, re.DOTALL)
+        matches = re.findall(pattern, str(text), re.DOTALL)
         
         return [
             {'language': lang or 'text', 'code': code}
@@ -1491,12 +1505,19 @@ class BuddAI:
             elif intent['type'] == 'continue_project':
                 recent = self.project_memory.get_recent_projects(n=3)
                 if recent:
-                    print("\n📁 Recent projects:")
-                    for i, proj in enumerate(recent, 1):
-                        print(f"{i}. {proj.name} ({proj.project_type})")
-                    choice = input("\nWhich one? (1-3): ").strip()
-                    if choice.isdigit() and 1 <= int(choice) <= len(recent):
-                        self._cmd_open_project(f"/open {recent[int(choice)-1].name}")
+                    if self.server_mode:
+                        response = "📁 Recent projects:\n"
+                        for i, proj in enumerate(recent, 1):
+                            response += f"{i}. {proj.name} ({proj.project_type})\n"
+                        response += "\nUse /open <name> to continue."
+                        return ChatResponse(response, model='conversational', intent=intent)
+                    else:
+                        print("\n📁 Recent projects:")
+                        for i, proj in enumerate(recent, 1):
+                            print(f"{i}. {proj.name} ({proj.project_type})")
+                        choice = input("\nWhich one? (1-3): ").strip()
+                        if choice.isdigit() and 1 <= int(choice) <= len(recent):
+                            self._cmd_open_project(f"/open {recent[int(choice)-1].name}")
                 return ChatResponse('', model='conversational', intent=intent)
             
             # Idea exploration - ask clarifying questions
