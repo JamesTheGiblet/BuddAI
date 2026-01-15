@@ -2,6 +2,7 @@ import sys
 import os
 import unittest
 from pathlib import Path
+import tempfile
 import json
 from datetime import datetime
 from unittest.mock import patch
@@ -14,13 +15,31 @@ from conversation.personality import BuddAIPersonality
 
 class TestPersonalityManager(unittest.TestCase):
     def setUp(self):
-        # Suppress prints
-        self.print_patcher = patch("builtins.print")
-        self.print_patcher.start()
+        # Create temp DB
+        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(self.db_fd)
+        self.db_path_obj = Path(self.db_path)
+
+        # Patch DB paths to use temp DB
+        self.patches = [
+            patch('core.buddai_shared.DB_PATH', self.db_path_obj),
+            patch('core.buddai_storage.DB_PATH', self.db_path_obj),
+            patch('buddai_executive.DB_PATH', self.db_path_obj),
+            patch('builtins.print')
+        ]
+        for p in self.patches:
+            p.start()
+
         self.ai = BuddAI(user_id="test_user", server_mode=True)
 
     def tearDown(self):
-        self.print_patcher.stop()
+        for p in reversed(self.patches):
+            p.stop()
+        if os.path.exists(self.db_path):
+            try:
+                os.unlink(self.db_path)
+            except PermissionError:
+                pass
 
     def test_identity_meta(self):
         """Verify Identity & Meta"""

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SURVEYOR v5.2 | Semantic Multi-Grid Engine</title>
+
+<style>
+:root {
+    --accent:#4dabff;
+    --bg:#121212;
+    --panel:#1e1e1e;
+    --text:#e0e0e0;
+}
+
+body {
+    margin:0;
+    font-family:system-ui, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+}
+
+header {
+    background:var(--panel);
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:1px solid #333;
+}
+
+.logo {
+    font-weight:bold;
+    color:var(--accent);
+}
+
+#canvas-container {
+    position:relative;
+    flex:1;
+    background:#000;
+    touch-action:none;
+}
+
+canvas {
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+.palette {
+    position:absolute;
+    left:10px;
+    top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    background:rgba(30,30,30,0.85);
+    padding:10px;
+    border-radius:8px;
+}
+
+.stamp-btn {
+    width:40px;
+    height:40px;
+    border-radius:6px;
+    background:#333;
+    border:1px solid #555;
+    color:#fff;
+    font-size:1.2rem;
+}
+
+.stamp-btn.active {
+    border-color:var(--accent);
+    background:#444;
+}
+
+.controls {
+    position:absolute;
+    right:10px;
+    top:10px;
+    width:150px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+select, button {
+    background:#333;
+    color:#fff;
+    border:1px solid #444;
+    border-radius:6px;
+    padding:8px;
+    font-size:0.8rem;
+}
+
+.metrics {
+    background:var(--panel);
+    height:60px;
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    border-top:1px solid #333;
+}
+
+.stat-val {
+    color:var(--accent);
+    font-family:monospace;
+    font-size:1.1rem;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">SURVEYOR v5.2</div>
+    <div style="display:flex;gap:8px;">
+        <button onclick="upload.click()">📁</button>
+        <input type="file" id="upload" accept="image/*" hidden>
+        <button style="background:var(--accent);color:#000;" onclick="exportSVG()">💾 Export</button>
+    </div>
+</header>
+
+<div id="canvas-container">
+    <canvas id="mainCanvas"></canvas>
+
+    <div class="palette">
+        <button class="stamp-btn active" onclick="setTool('wall',this)">🧱</button>
+        <button class="stamp-btn" onclick="setTool('door',this)">🚪</button>
+        <button class="stamp-btn" onclick="setTool('window',this)">🪟</button>
+        <button class="stamp-btn" onclick="setTool('sink',this)">🚰</button>
+        <button class="stamp-btn" onclick="setTool('toilet',this)">🚽</button>
+    </div>
+
+    <div class="controls">
+        <select id="gridType" onchange="draw()">
+            <option value="square">Square Grid</option>
+            <option value="dot">Dot Grid</option>
+            <option value="none">No Grid</option>
+        </select>
+        <button onclick="clearAll()">Clear Survey</button>
+        <div style="font-size:0.7rem;color:#888;text-align:center;">
+            Shift = Free Angle
+        </div>
+    </div>
+</div>
+
+<div class="metrics">
+    <div><span class="stat-val" id="area">0.00</span> m²</div>
+    <div><span class="stat-val" id="linear">0.0</span> m</div>
+    <div><span class="stat-val" id="objCount">0</span> assets</div>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const PIXELS_PER_METER = 25;
+const GRID = 25;
+
+/* ===== STATE ===== */
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+
+let walls = [];
+let stamps = [];
+let drawingWall = null;
+let activeTool = 'wall';
+let uploadedImg = null;
+let shiftDown = false;
+
+/* ===== INPUT ===== */
+window.addEventListener('keydown', e => shiftDown = e.key === 'Shift');
+window.addEventListener('keyup', e => shiftDown = false);
+
+upload.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => {
+        uploadedImg = new Image();
+        uploadedImg.src = ev.target.result;
+        uploadedImg.onload = draw;
+    };
+    r.readAsDataURL(file);
+};
+
+/* ===== UTILS ===== */
+function snap(v) {
+    return shiftDown ? v : Math.round(v / GRID) * GRID;
+}
+
+function dist(a,b) {
+    return Math.hypot(a.x-b.x, a.y-b.y);
+}
+
+function nearestWall(p) {
+    let best=null, d=Infinity;
+    walls.forEach(w=>{
+        const t=((p.x-w.a.x)*(w.b.x-w.a.x)+(p.y-w.a.y)*(w.b.y-w.a.y)) /
+                ((w.b.x-w.a.x)**2+(w.b.y-w.a.y)**2);
+        if(t<0||t>1)return;
+        const proj={
+            x:w.a.x+t*(w.b.x-w.a.x),
+            y:w.a.y+t*(w.b.y-w.a.y)
+        };
+        const dd=dist(p,proj);
+        if(dd<d){d=dd;best={wall:w,pos:proj};}
+    });
+    return d<20?best:null;
+}
+
+/* ===== CANVAS ===== */
+function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    draw();
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ===== POINTER ===== */
+canvas.onpointerdown = e => {
+    const p={x:snap(e.offsetX),y:snap(e.offsetY)};
+    if(activeTool==='wall'){
+        drawingWall={a:p,b:p};
+    } else {
+        const snapWall=nearestWall(p);
+        stamps.push({
+            type:activeTool,
+            x:snapWall?snapWall.pos.x:p.x,
+            y:snapWall?snapWall.pos.y:p.y,
+            wall:snapWall?snapWall.wall:null
+        });
+        updateMetrics();
+        draw();
+    }
+};
+
+canvas.onpointermove = e => {
+    if(!drawingWall)return;
+    drawingWall.b={x:snap(e.offsetX),y:snap(e.offsetY)};
+    draw();
+};
+
+canvas.onpointerup = e => {
+    if(!drawingWall)return;
+    walls.push(drawingWall);
+    drawingWall=null;
+    updateMetrics();
+    draw();
+};
+
+/* ===== DRAW ===== */
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    if(uploadedImg){
+        const r=Math.min(canvas.width/uploadedImg.width,canvas.height/uploadedImg.height);
+        ctx.drawImage(uploadedImg,0,0,uploadedImg.width*r,uploadedImg.height*r);
+    }
+
+    const gt=gridType.value;
+    if(gt!=='none'){
+        ctx.strokeStyle='#222';
+        ctx.fillStyle='#333';
+        for(let x=0;x<canvas.width;x+=GRID){
+            for(let y=0;y<canvas.height;y+=GRID){
+                if(gt==='square') ctx.strokeRect(x,y,GRID,GRID);
+                else ctx.fillRect(x,y,2,2);
+            }
+        }
+    }
+
+    ctx.strokeStyle=varAccent();
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    walls.forEach(w=>{
+        ctx.moveTo(w.a.x,w.a.y);
+        ctx.lineTo(w.b.x,w.b.y);
+    });
+    if(drawingWall){
+        ctx.moveTo(drawingWall.a.x,drawingWall.a.y);
+        ctx.lineTo(drawingWall.b.x,drawingWall.b.y);
+    }
+    ctx.stroke();
+
+    ctx.font="20px serif";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    stamps.forEach(s=>{
+        const i=s.type==='sink'?'🚰':s.type==='toilet'?'🚽':s.type==='door'?'🚪':'🪟';
+        ctx.fillText(i,s.x,s.y);
+    });
+}
+
+function varAccent(){return getComputedStyle(document.documentElement).getPropertyValue('--accent');}
+
+/* ===== METRICS ===== */
+function updateMetrics(){
+    document.getElementById('objCount').textContent=stamps.length;
+    document.getElementById('linear').textContent=
+        (walls.reduce((s,w)=>s+dist(w.a,w.b),0)/PIXELS_PER_METER).toFixed(1);
+    document.getElementById('area').textContent=calcArea().toFixed(2);
+}
+
+function calcArea(){
+    if(walls.length<3)return 0;
+    const pts=walls.map(w=>w.a);
+    pts.push(walls[walls.length-1].b);
+    let a=0;
+    for(let i=0;i<pts.length-1;i++){
+        a+=pts[i].x*pts[i+1].y-pts[i+1].x*pts[i].y;
+    }
+    return Math.abs(a/2)/(PIXELS_PER_METER**2);
+}
+
+/* ===== UI ===== */
+function setTool(t,el){
+    activeTool=t;
+    document.querySelectorAll('.stamp-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function clearAll(){
+    walls=[];
+    stamps=[];
+    uploadedImg=null;
+    updateMetrics();
+    draw();
+}
+
+/* ===== EXPORT ===== */
+function exportSVG(){
+    let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">`;
+    if(uploadedImg) svg+=`<image href="${uploadedImg.src}" width="${canvas.width}" height="${canvas.height}"/>`;
+    walls.forEach(w=>{
+        svg+=`<line x1="${w.a.x}" y1="${w.a.y}" x2="${w.b.x}" y2="${w.b.y}"
+              stroke="#4dabff" stroke-width="3"/>`;
+    });
+    stamps.forEach(s=>{
+        const i=s.type==='sink'?'🚰':s.type==='toilet'?'🚽':s.type==='door'?'🚪':'🪟';
+        svg+=`<text x="${s.x}" y="${s.y}" font-size="20"
+              text-anchor="middle" dominant-baseline="central">${i}</text>`;
+    });
+    svg+='</svg>';
+
+    const blob=new Blob([svg],{type:'image/svg+xml'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='survey.svg';
+    a.click();
+}
+</script>
+</body>
+</html>

@@ -19,8 +19,14 @@ def main():
     parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host IP address")
     parser.add_argument("--public-url", type=str, default="", help="Public URL for QR codes")
+    parser.add_argument("prompt", nargs="?", help="One-shot prompt to execute")
     
     args = parser.parse_args()
+
+    # Fix for Windows console encoding (emojis)
+    if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
 
     print("\n🔌 Booting BuddAI v5.0...")
     
@@ -38,8 +44,11 @@ def main():
                 print("⚠️  buddai_server.py not found. Falling back to CLI mode.")
                 ai.run()
         else:
-            # CLI Mode
-            ai.run()
+            # CLI Mode (Interactive or One-Shot)
+            if args.prompt:
+                print(ai.chat(args.prompt))
+            else:
+                ai.run()
             
     except KeyboardInterrupt:
         print("\n👋 Shutdown sequence initiated.")

@@ -1,0 +1,23 @@
+===================================================
+   BUDDAI v5.0 VALIDATION RUNNER
+   Report: tests\reports\validation_report_2026-01-14_06-39-04.txt
+===================================================
+Running Q1: PWM LED Control (Hardware Check)...
+  Prompt: "Generate ESP32 PWM LED control code."
+  ❌ FAILED: Missing keywords: ['ESP32Servo.h', 'attach']
+--------------------------------------------------
+Running Q5: State Machine Logic (Pattern Check)...
+  Prompt: "Write a state machine for a robot system."
+  ❌ FAILED: Missing keywords: ['enum', 'switch', 'case', 'break']
+--------------------------------------------------
+Running Q8: Forge Theory Methodology (Personality Check)...
+  Prompt: "Generate motor speed control using Forge Theory."
+  ❌ ERROR: Command '['C:\\Python313\\python.exe', 'main.py', 'Generate motor speed control using Forge Theory.']' timed out after 120 seconds
+--------------------------------------------------
+Running Q10: Complex System Decomposition (Architecture Check)...
+  Prompt: "Build a combat robot with drive, weapon, battery, and safety systems."
+  ❌ FAILED: Process exited with code 1
+--------------------------------------------------
+
+Results: 0/4 Passed
+⚠️  SOME TESTS FAILED. CHECK LEARNING DATABASE.

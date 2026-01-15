@@ -1,0 +1,29 @@
+===================================================
+   BUDDAI v5.0 VALIDATION RUNNER
+   Report: tests\reports\validation_report_2026-01-14_20-16-56.txt
+===================================================
+🌱 Seeding knowledge base for validation...
+   + Added rule: For ESP32 PWM LED control, always use ES...
+   + Added rule: Forge Theory formula: current += (target...
+   + Added rule: State machines should use enum for state...
+--------------------------------------------------
+Running Q1: PWM LED Control (Hardware Check)...
+  Prompt: "Generate ESP32 PWM LED control code."
+  ❌ FAILED: Missing keywords: ['ESP32Servo.h']
+--------------------------------------------------
+Running Q5: State Machine Logic (Pattern Check)...
+  Prompt: "Write a state machine for a robot system."
+  ✅ PASSED in 28.11s
+--------------------------------------------------
+Running Q8: Forge Theory Methodology (Personality Check)...
+  Prompt: "Generate motor speed control using Forge Theory."
+  ❌ FAILED: Missing keywords: ['target - current', '* k', '+=']
+--------------------------------------------------
+Running Q10: Complex System Decomposition (Architecture Check)...
+  Prompt: "Build a combat robot with drive, weapon, battery, and safety systems."
+  ❌ FAILED: Process exited with code 1
+  Stdout (Last 5 lines): ['1. Aggressive (k=0.3) - High snap, combat ready', '2. Balanced (k=0.1) - Standard movement', '3. Graceful (k=0.03) - Roasting / Smooth curves', 'Select Tuning Constant [1-3, default 2]: ', "❌ Critical Startup Error: 'style_patterns'"]
+--------------------------------------------------
+
+Results: 1/4 Passed
+⚠️  SOME TESTS FAILED. CHECK LEARNING DATABASE.

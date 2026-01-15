@@ -1,0 +1,23 @@
+===================================================
+   BUDDAI v5.0 VALIDATION RUNNER
+   Report: tests\reports\validation_report_2026-01-14_06-27-01.txt
+===================================================
+Running Q1: PWM LED Control (Hardware Check)...
+  Prompt: "Generate ESP32 PWM LED control code."
+  ❌ ERROR: 'NoneType' object has no attribute 'lower'
+--------------------------------------------------
+Running Q5: State Machine Logic (Pattern Check)...
+  Prompt: "Write a state machine for a robot system."
+  ❌ ERROR: Command '['C:\\Python313\\python.exe', 'main.py', 'Write a state machine for a robot system.']' timed out after 120 seconds
+--------------------------------------------------
+Running Q8: Forge Theory Methodology (Personality Check)...
+  Prompt: "Generate motor speed control using Forge Theory."
+  ❌ ERROR: 'NoneType' object has no attribute 'lower'
+--------------------------------------------------
+Running Q10: Complex System Decomposition (Architecture Check)...
+  Prompt: "Build a combat robot with drive, weapon, battery, and safety systems."
+  ❌ ERROR: Command '['C:\\Python313\\python.exe', 'main.py', 'Build a combat robot with drive, weapon, battery, and safety systems.']' timed out after 120 seconds
+--------------------------------------------------
+
+Results: 0/4 Passed
+⚠️  SOME TESTS FAILED. CHECK LEARNING DATABASE.

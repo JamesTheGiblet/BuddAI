@@ -384,6 +384,12 @@ class BuddAI:
                 else:
                     enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, hw_context, self.context_messages)
                 
+                    # Inject learned rules
+                    rules = self.get_applicable_rules(message)
+                    if rules:
+                        rules_text = "\n".join([f"- {r['rule_text']}" for r in rules])
+                        enhanced_prompt += f"\n\n[MANDATORY CONFIGURATION & RULES]\n{rules_text}\n\nSTRICTLY FOLLOW THESE RULES OVER DEFAULT TRAINING."
+
                 # Inject mode-specific note if available
                 mode_note = self._get_current_mode_note()
                 if mode_note:
@@ -442,7 +448,11 @@ class BuddAI:
                 if self.server_mode:
                     choice = forge_mode
                 else:
-                    choice = input("Select Tuning Constant [1-3, default 2]: ")
+                    try:
+                        choice = input("Select Tuning Constant [1-3, default 2]: ")
+                    except (EOFError, OSError):
+                        print("2 (Auto-selected: Non-interactive mode detected)")
+                        choice = "2"
                 
                 k_val = "0.1"
                 if choice == "1": k_val = "0.3"
@@ -707,13 +717,17 @@ class BuddAI:
             
         # Check personality intents (Greeting, Idea Exploration)
         intent = self.personality_engine.understand_intent(user_message)
+        
+        # Global Safeguard: Explicit code requests must bypass conversation layers
+        is_code_request = any(w in user_message.lower() for w in ['code', 'generate', 'write', 'script', 'build'])
+        
         if intent['type'] in ['greeting', 'idea_exploration', 'continue_project', 'new_project']:
             # Avoid trapping explicit code requests
-            if not (intent['type'] == 'idea_exploration' and any(w in user_message.lower() for w in ['code', 'generate', 'write'])):
+            if not (intent['type'] == 'idea_exploration' and is_code_request):
                 print(f"\n💬 Personality Engine ({intent['type']})...")
                 return self.personality_engine.respond_naturally(user_message, intent)
 
-        elif self.conversation_protocol.is_conversational(user_message):
+        elif self.conversation_protocol.is_conversational(user_message) and not is_code_request:
             # New Conversation Protocol
             print("\n💬 Using FAST model (Conversational Protocol)...")
             return self.call_model("fast", user_message, system_task=True, hardware_override="Conversational")
@@ -727,11 +741,12 @@ class BuddAI:
             msg_lower = user_message.lower().strip()
             is_greeting = (any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 20) or "how are you" in msg_lower
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
+            is_personal = "my " in msg_lower or " i " in msg_lower or " i'" in msg_lower or msg_lower.endswith(" me")
             # Enable personality/history for greetings to support symbiotic conversation
-            use_system_task = is_conceptual and not is_greeting
+            use_system_task = is_conceptual and not is_greeting and not is_personal
             
             # Prevent code generation for greetings by overriding hardware context
-            hw_override = "Conversational" if is_greeting else None
+            hw_override = "Conversational" if (is_greeting or is_personal) else None
             
             return self.call_model("fast", user_message, system_task=use_system_task, hardware_override=hw_override)
         else:
@@ -780,9 +795,11 @@ class BuddAI:
             msg_lower = user_message.lower().strip()
             is_greeting = any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 6
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
+            is_personal = "my " in msg_lower or " i " in msg_lower or " i'" in msg_lower or msg_lower.endswith(" me")
             # Enable personality/history for greetings
-            use_system_task = is_conceptual and not is_greeting
-            iterator = self.call_model("fast", user_message, stream=True, system_task=use_system_task)
+            use_system_task = is_conceptual and not is_greeting and not is_personal
+            hw_override = "Conversational" if (is_greeting or is_personal) else None
+            iterator = self.call_model("fast", user_message, stream=True, system_task=use_system_task, hardware_override=hw_override)
         elif self._is_general_discussion(user_message):
             print("\n⚡ Using BALANCED model (General Context)...")
             iterator = self.call_model("balanced", user_message, stream=True, hardware_override="General Electronics")
@@ -812,6 +829,18 @@ class BuddAI:
         """Handle slash commands when received via chat interface"""
         cmd = command.lower().strip()
         
+        if cmd == '/help':
+            output = []
+            original_print = self._print
+            def capture(*args, **kwargs):
+                sep = kwargs.get('sep', ' ')
+                end = kwargs.get('end', '\n')
+                output.append(sep.join(map(str, args)) + end)
+            self._print = capture
+            self._print_help()
+            self._print = original_print
+            return "".join(output).strip()
+
         if cmd.startswith('/teach'):
             rule = command[7:].strip()
             if rule:
@@ -947,6 +976,7 @@ class BuddAI:
                 mem_usage = f"{process.memory_info().rss / 1024 / 1024:.0f} MB"
             
             return (f"🖥️ System Status:\n"
+                    f"   User:     {self.user_id}\n"
                     f"   Session:  {self.storage.current_session_id}\n"
                     f"   Hardware: {self.current_hardware}\n"
                     f"   Memory:   {mem_usage}\n"
@@ -1017,8 +1047,8 @@ class BuddAI:
         if cmd.startswith('/personality'):
             return self._handle_personality_command(command)
 
-        cmd_word = cmd.split()[0]
-        if cmd_word in ['/projects', '/new', '/open', '/close', '/timeline']:
+        # Use startswith for more robust matching of project commands
+        if any(cmd.startswith(prefix) for prefix in ['/projects', '/new', '/open', '/close', '/timeline']):
             return self._handle_projects_command(command)
 
         return f"Command {cmd.split()[0]} not supported in chat mode."
@@ -1424,25 +1454,25 @@ class BuddAI:
 
     def _print_help(self):
         """Print help with new commands"""
-        print("\n📚 Available Commands:\n")
-        print("Project Management:")
-        print("  /projects       - List all projects")
-        print("  /new [name]     - Create new project")
-        print("  /open <name>    - Open existing project")
-        print("  /close          - Close current project")
-        print("  /save           - Save current project")
-        print("  /timeline       - Show project timeline")
-        print("  /personality    - Manage personality (load/reload)")
-        print("  /gists          - List indexed Gists")
-        print()
-        print("AI Settings:")
-        print("  /fast           - Use fast model")
-        print("  /balanced       - Use balanced model")
-        print()
-        print("Other:")
-        print("  /help           - Show this help")
-        print("  exit            - Exit BuddAI")
-        print()
+        self._print("\n📚 Available Commands:\n")
+        self._print("Project Management:")
+        self._print("  /projects       - List all projects")
+        self._print("  /new [name]     - Create new project")
+        self._print("  /open <name>    - Open existing project")
+        self._print("  /close          - Close current project")
+        self._print("  /save           - Save current project")
+        self._print("  /timeline       - Show project timeline")
+        self._print("  /personality    - Manage personality (load/reload)")
+        self._print("  /gists          - List indexed Gists")
+        self._print()
+        self._print("AI Settings:")
+        self._print("  /fast           - Use fast model")
+        self._print("  /balanced       - Use balanced model")
+        self._print()
+        self._print("Other:")
+        self._print("  /help           - Show this help")
+        self._print("  exit            - Exit BuddAI")
+        self._print()
 
     def _extract_code_blocks(self, text: str) -> List[Dict]:
         """Extract code blocks from markdown"""
@@ -1522,17 +1552,20 @@ class BuddAI:
             
             # Idea exploration - ask clarifying questions
             elif intent['type'] == 'idea_exploration':
-                response = self.personality.respond_naturally(user_message, intent, context={
-                    'current_project': self.current_project
-                })
-                print(f"\nBuddAI:\n{response}\n")
-                
-                # Save to history
-                msg_id = self.storage.save_message("assistant", response)
-                self.last_generated_id = msg_id
-                self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
-                
-                return ChatResponse(response, model='conversational', intent=intent)
+                # Safeguard: Don't trap explicit code requests
+                is_code_request = any(w in user_message.lower() for w in ['code', 'generate', 'write', 'script', 'build'])
+                if not is_code_request:
+                    response = self.personality.respond_naturally(user_message, intent, context={
+                        'current_project': self.current_project
+                    })
+                    print(f"\nBuddAI:\n{response}\n")
+                    
+                    # Save to history
+                    msg_id = self.storage.save_message("assistant", response)
+                    self.last_generated_id = msg_id
+                    self.context_messages.append({"id": msg_id, "role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+                    
+                    return ChatResponse(response, model='conversational', intent=intent)
 
         # Detect code blocks and validate
         code_blocks = self._extract_code_blocks(user_message)
@@ -1571,10 +1604,10 @@ class BuddAI:
 
         # Detect Intent
         detection = self.workflow_detector.detect_intent(user_message)
-        intent = detection.get('intent', 'unknown')
-        confidence = detection.get('confidence', 0.0)
-        if confidence > 0.7:
-            print(f"🎯 Intent Detected: {intent} ({confidence:.2f})")
+        workflow_intent = detection.get('intent', 'unknown')
+        workflow_confidence = detection.get('confidence', 0.0)
+        if workflow_confidence > 0.7:
+            print(f"🎯 Intent Detected: {workflow_intent} ({workflow_confidence:.2f})")
 
         # Direct Schedule Check
         schedule_triggers = self.personality_manager.get_value("work_cycles.schedule_check_triggers", ["my schedule"])
@@ -1599,6 +1632,8 @@ class BuddAI:
         self.adaptive_learner.extract_conversational_facts(user_message, self)
 
         response = self._route_request(user_message, force_model, forge_mode)
+        if response is None:
+            response = ""
 
         # Apply Style Guard
         response = self.apply_style_signature(response)

@@ -96,6 +96,8 @@ class ShadowSuggestionEngine:
 
     def get_all_suggestions(self, user_input: str, generated_code: str) -> List[str]:
         """Aggregate all proactive suggestions into a list."""
+        if not generated_code:
+            return []
         suggestions = []
         
         # 1. Companion Modules

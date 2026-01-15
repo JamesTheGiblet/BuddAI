@@ -1,0 +1,27 @@
+===================================================
+   BUDDAI v5.0 VALIDATION RUNNER
+   Report: tests\reports\validation_report_2026-01-14_20-23-35.txt
+===================================================
+🌱 Seeding knowledge base for validation...
+--------------------------------------------------
+Running Q1: PWM LED Control (Hardware Check)...
+  Prompt: "Generate ESP32 PWM LED control code."
+  ❌ FAILED: Missing keywords: ['ESP32Servo.h']
+     Output snippet:  🔌 Booting BuddAI v5.0... 🧠 Loading custom personality...  ================================================== Hi James! Evening, James! Wednesday  Anything on your mind today? ================================================== 🧠 Learned Rules: 522  📁 Recent Projects:   ▶️ spinner_bot (robotics)  Typ...
+--------------------------------------------------
+Running Q5: State Machine Logic (Pattern Check)...
+  Prompt: "Write a state machine for a robot system."
+  ✅ PASSED in 25.50s
+--------------------------------------------------
+Running Q8: Forge Theory Methodology (Personality Check)...
+  Prompt: "Generate motor speed control using Forge Theory."
+  ❌ FAILED: Missing keywords: ['target - current', '* k', '+=']
+     Output snippet:  🔌 Booting BuddAI v5.0... 🧠 Loading custom personality...  ================================================== Hi James! Evening, James! Wednesday  Anything on your mind today? ================================================== 🧠 Learned Rules: 522  📁 Recent Projects:   ▶️ spinner_bot (robotics)  Typ...
+--------------------------------------------------
+Running Q10: Complex System Decomposition (Architecture Check)...
+  Prompt: "Build a combat robot with drive, weapon, battery, and safety systems."
+  ❌ ERROR: Command '['C:\\Python313\\python.exe', 'main.py', 'Build a combat robot with drive, weapon, battery, and safety systems.']' timed out after 120 seconds
+--------------------------------------------------
+
+Results: 1/4 Passed
+⚠️  SOME TESTS FAILED. CHECK LEARNING DATABASE.

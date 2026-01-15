@@ -44,6 +44,8 @@ Write-Host 'Checking dependencies...' -ForegroundColor Green
 # Upgrade pip first to fix potential "Request-sent" or SSL errors
 ./venv/Scripts/python.exe -m pip install --upgrade pip
 ./venv/Scripts/python.exe -m pip install -r requirements.txt
+# Fix for WinError 121: Ensure latest websockets/uvicorn
+./venv/Scripts/python.exe -m pip install --upgrade websockets uvicorn
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Dependency installation failed." -ForegroundColor Red
     exit

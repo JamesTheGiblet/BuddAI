@@ -1,0 +1,12 @@
+===================================================
+   BUDDAI v5.0 VALIDATION RUNNER
+   Report: tests\reports\validation_report_2026-01-14_20-54-37.txt
+===================================================
+🌱 Seeding knowledge base for validation...
+--------------------------------------------------
+Running Q1: PWM LED Control (Hardware Check)...
+  Prompt: "Generate ESP32 PWM LED control code."
+  ❌ ERROR: Command '['C:\\Python313\\python.exe', 'main.py', 'Generate ESP32 PWM LED control code.']' timed out after 60 seconds
+--------------------------------------------------
+Running Q5: State Machine Logic (Pattern Check)...
+  Prompt: "Write a state machine for a robot system."
