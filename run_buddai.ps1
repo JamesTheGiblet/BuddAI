@@ -163,7 +163,28 @@ if (-not $publicUrl -and $tailscaleIp) {
     $publicUrl = "http://$($lanIp):8000/web"
 }
 
+# Fix for RuntimeError: Ensure mobile.html is available where the server expects it
+if (Test-Path "frontend\mobile.html") {
+    Copy-Item "frontend\mobile.html" -Destination "mobile.html" -Force
+}
+
 Write-Host '   Opening browser...' -ForegroundColor DarkGray
 Start-Process 'http://localhost:8000/'
 # Use --host 0.0.0.0 to allow connections from other devices
-./venv/Scripts/python.exe main.py --server --port 8000 --host 0.0.0.0 --public-url "$publicUrl"
+Write-Host "   Server running. Press Ctrl+C to stop." -ForegroundColor DarkGray
+
+# Loop to auto-restart server on crash (e.g. WinError 64/121)
+$retryCount = 0
+while ($true) {
+    ./venv/Scripts/python.exe main.py --server --port 8000 --host 0.0.0.0 --public-url "$publicUrl"
+    if ($LASTEXITCODE -eq 0) { break }
+    
+    $retryCount++
+    if ($retryCount -gt 5) {
+        Write-Host "   [!] Too many crashes ($retryCount). Exiting." -ForegroundColor Red
+        break
+    }
+    
+    Write-Host "   [!] Server stopped unexpectedly (Code $LASTEXITCODE). Restarting in 2s... (Attempt $retryCount/5)" -ForegroundColor Yellow
+    Start-Sleep -Seconds 2
+}

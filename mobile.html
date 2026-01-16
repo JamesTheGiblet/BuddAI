@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuddAI Mobile</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --chat-bg: #1e1e1e;
+            --user-msg-bg: #2b5278;
+            --ai-msg-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #4a90e2;
+            --input-bg: #2d2d2d;
+            --user-text: #e0e0e0;
+            --border-color: #333;
+            --input-border: #444;
+            --icon-color: #aaa;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f0f2f5;
+            --chat-bg: #ffffff;
+            --user-msg-bg: #0084ff;
+            --ai-msg-bg: #e4e6eb;
+            --text-color: #050505;
+            --accent-color: #0084ff;
+            --input-bg: #f0f2f5;
+            --user-text: #ffffff;
+            --border-color: #ddd;
+            --input-border: #ccc;
+            --icon-color: #555;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        header {
+            background-color: var(--chat-bg);
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            position: relative;
+            font-size: 16px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--user-msg-bg);
+            color: var(--user-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background-color: var(--ai-msg-bg);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message pre {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        #input-area {
+            background-color: var(--chat-bg);
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        #message-input {
+            flex: 1;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-color);
+            padding: 12px;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #message-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        #upload-btn {
+            background-color: var(--input-bg);
+            color: var(--icon-color);
+            border: 1px solid var(--input-border);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        #upload-btn:active {
+            background-color: #3d3d3d;
+            color: white;
+        }
+
+        #upload-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        #send-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        #send-btn:active {
+            background-color: #357abd;
+        }
+
+        #send-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px;
+            align-self: flex-start;
+            display: none;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #666;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        #clear-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--icon-color);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        #theme-btn {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--icon-color);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        [data-theme="light"] #theme-btn,
+        [data-theme="light"] #clear-btn {
+            background: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button id="theme-btn">☀️</button>
+        BuddAI Mobile
+        <button id="clear-btn">Clear</button>
+    </header>
+    
+    <div id="chat-container">
+        <div class="message ai">
+            Ready to build, James.
+        </div>
+        <div class="typing-indicator" id="typing">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+
+    <div id="input-area">
+        <input type="file" id="file-input" style="display: none;">
+        <button id="upload-btn" title="Upload file">
+            <svg viewBox="0 0 24 24">
+                <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 0 0 5 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+            </svg>
+        </button>
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+        <button id="send-btn" title="Send message" aria-label="Send message">
+            <svg viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const clearBtn = document.getElementById('clear-btn');
+        const themeBtn = document.getElementById('theme-btn');
+        const typingIndicator = document.getElementById('typing');
+
+        // User & Session Management
+        let userId = localStorage.getItem('buddai_user_id');
+        if (!userId) {
+            userId = 'mobile_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('buddai_user_id', userId);
+        }
+
+        let sessionId = localStorage.getItem('buddai_session');
+
+        // Theme Management
+        const savedTheme = localStorage.getItem('buddai_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 50);
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function addMessage(text, sender, shouldScroll = true) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            
+            // Basic code block formatting
+            if (text.includes('```')) {
+                const parts = text.split('```');
+                let formattedHTML = '';
+                parts.forEach((part, index) => {
+                    if (index % 2 === 1) { // Code block
+                        formattedHTML += `<pre>${escapeHtml(part.trim())}</pre>`;
+                    } else { // Text
+                        formattedHTML += escapeHtml(part).replace(/\n/g, '<br>');
+                    }
+                });
+                div.innerHTML = formattedHTML;
+            } else {
+                div.textContent = text;
+            }
+            
+            chatContainer.insertBefore(div, typingIndicator);
+            if (shouldScroll) scrollToBottom();
+        }
+
+        function renderHistory(history) {
+            // Remove existing messages (keep typing indicator)
+            const messages = chatContainer.querySelectorAll('.message');
+            messages.forEach(msg => msg.remove());
+            
+            history.forEach(msg => {
+                if (msg.role !== 'system') {
+                    addMessage(msg.content, msg.role === 'user' ? 'user' : 'ai', false);
+                }
+            });
+            scrollToBottom();
+        }
+
+        async function initSession() {
+            const headers = { 'Content-Type': 'application/json', 'user-id': userId };
+            
+            if (sessionId) {
+                try {
+                    const res = await fetch('/api/session/load', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+                    const data = await res.json();
+                    if (data.history && data.history.length > 0) {
+                        renderHistory(data.history);
+                        return;
+                    }
+                } catch (e) { console.error("Load failed", e); }
+            }
+
+            // Create new session if load failed or no ID
+            try {
+                const res = await fetch('/api/session/new', { method: 'POST', headers: headers });
+                const data = await res.json();
+                sessionId = data.session_id;
+                localStorage.setItem('buddai_session', sessionId);
+                
+                // Clear default welcome
+                const messages = chatContainer.querySelectorAll('.message');
+                messages.forEach(msg => msg.remove());
+                addMessage("Ready to build (New Session).", 'ai');
+            } catch (e) { console.error("Create failed", e); }
+        }
+
+        function showTyping(show) {
+            typingIndicator.style.display = show ? 'flex' : 'none';
+            scrollToBottom();
+        }
+
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'user');
+            messageInput.value = '';
+            showTyping(true);
+
+            try {
+                // Attempt to hit the API
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'user-id': userId },
+                    body: JSON.stringify({
+                        message: text
+                    })
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const data = await response.json();
+                showTyping(false);
+                
+                // Handle various response formats
+                const reply = data.response || data.message || data.content || JSON.stringify(data);
+                addMessage(reply, 'ai');
+
+            } catch (error) {
+                showTyping(false);
+                console.error('Error:', error);
+                addMessage("Connection error. Is BuddAI running?", 'ai');
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            addMessage(`Uploading ${file.name}...`, 'user');
+            showTyping(true);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'user-id': userId },
+                    body: formData
+                });
+                const data = await response.json();
+                showTyping(false);
+                addMessage(data.message || "Upload complete", 'ai');
+            } catch (error) {
+                showTyping(false);
+                console.error('Upload error:', error);
+                addMessage("Upload failed.", 'ai');
+            }
+            fileInput.value = '';
+        });
+
+        clearBtn.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear the chat history?')) return;
+            
+            try {
+                await fetch('/api/session/clear', {
+                    method: 'POST',
+                    headers: { 'user-id': userId }
+                });
+                
+                const messages = chatContainer.querySelectorAll('.message');
+                messages.forEach(msg => msg.remove());
+                addMessage("Chat history cleared.", 'ai');
+            } catch (e) {
+                console.error("Clear failed", e);
+            }
+        });
+
+        themeBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('buddai_theme', next);
+            themeBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+        });
+
+        // Auto-scroll when keyboard opens/closes
+        window.addEventListener('resize', scrollToBottom);
+
+        initSession();
+    </script>
+</body>
+</html>

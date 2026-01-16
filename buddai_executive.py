@@ -96,6 +96,19 @@ class BuddAI:
         # Auto-index Gists on startup
         threading.Thread(target=self.repo_manager.index_gists, kwargs={'silent': True}, daemon=True).start()
         
+        # Auto-register James's Personality Gist
+        def _load_james_personality():
+            url = "https://gist.githubusercontent.com/JamesTheGiblet/ead7080eb60e1e3b465a37a3cd8eeed1/raw/007a8758417b8ee1af4b946f038ec23d69920155/gistfile1.txt"
+            success, msg = self.register_knowledge_source(url, "James")
+            if success:
+                try:
+                    count = msg.split("Learned ")[1].split(" rules")[0]
+                    print(f"🧠 Personality Synced: {count} rules loaded from James's Gist")
+                except IndexError:
+                    print(f"🧠 Personality Synced: James's Gist loaded")
+
+        threading.Thread(target=_load_james_personality, daemon=True).start()
+        
         self.display_welcome_message()
         
         print(f"\n{self.personality_manager.get_user_status()}\n")
@@ -231,14 +244,57 @@ class BuddAI:
 
     def get_applicable_rules(self, user_message: str) -> List[Dict]:
         """Get rules relevant to the user message"""
-        # user_message is currently unused
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         # Fetch rules with reasonable confidence
-        cursor.execute("SELECT rule_text, confidence FROM code_rules WHERE confidence > 0.6 ORDER BY confidence DESC")
+        # Added id to select for recency boosting
+        cursor.execute("SELECT rule_text, confidence, id FROM code_rules WHERE confidence > 0.6 ORDER BY confidence DESC")
         rows = cursor.fetchall()
         conn.close()
-        return [{"rule_text": r[0], "confidence": r[1]} for r in rows]
+        
+        all_rules = [{"rule_text": r[0], "confidence": r[1], "id": r[2]} for r in rows]
+        
+        if not user_message:
+            return all_rules[:50]
+            
+        # Filter and rank rules by relevance to prevent context flooding
+        msg_lower = user_message.lower()
+        # Limit to first 100 words to avoid performance hit on large pastes
+        words = re.findall(r'\w+', msg_lower)[:100]
+        keywords = set(words) - {'what', 'is', 'my', 'the', 'and', 'a', 'to', 'of', 'in', 'for', 'are', 'do', "what's"}
+        
+        scored_rules = []
+        max_id = max([r['id'] for r in all_rules]) if all_rules else 1
+        
+        for rule in all_rules:
+            rule_text = rule['rule_text'].lower()
+            score = rule['confidence'] * 10.0
+            
+            # Keyword matching
+            matches = sum(1 for kw in keywords if kw in rule_text)
+            score += matches * 5.0
+            
+            # High relevance boost: If rule contains significant portion of query keywords
+            if len(keywords) > 0 and matches >= len(keywords) * 0.4:
+                score += 15.0
+            
+            # Personal context boost
+            if "my " in msg_lower or " i " in msg_lower:
+                # Boost rules that start with "my" or "i" if they contain query keywords
+                if (rule_text.startswith("my ") or rule_text.startswith("i ")) and matches > 0:
+                    score += 15.0
+                
+                if any(p in rule_text for p in ["i work", "my job", "my plan", "i am", "my company", "exit plan"]):
+                    score += 10.0
+            
+            # Recency boost (Newer rules are more likely to be relevant corrections)
+            score += (rule['id'] / max_id) * 5.0
+            
+            scored_rules.append((score, rule))
+            
+        # Sort by relevance and limit to top 50
+        scored_rules.sort(key=lambda x: x[0], reverse=True)
+        return [r[1] for r in scored_rules[:50]]
 
     def get_style_summary(self) -> str:
         """Get summary of learned style preferences"""
@@ -356,6 +412,262 @@ class BuddAI:
                     
         return day_config.get("default", {}).get("note")
 
+    def _ingest_teach_commands(self, content: str, source_tag: str) -> int:
+        """Extract and learn /teach commands from text content"""
+        count = 0
+        for line in content.splitlines():
+            if line.strip().startswith('/teach'):
+                # Strip comments (e.g. "Rule text # comment")
+                clean_line = line.split('#')[0].strip()
+                rule = clean_line[6:].strip()
+                if rule:
+                    if self.teach_rule(rule, source=f"gist:{source_tag}"):
+                        count += 1
+        return count
+
+    def register_knowledge_source(self, url: str, tag: str) -> Tuple[bool, str]:
+        """Register a secret gist or knowledge source"""
+        try:
+            # Handle raw URL conversion for GitHub Gists
+            if 'gist.github.com' in url and '/raw' not in url:
+                url = url.rstrip('/') + '/raw'
+            
+            req = urllib.request.Request(url, headers={'User-Agent': 'BuddAI/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status != 200:
+                    return False, f"HTTP {response.status}"
+                content = response.read().decode('utf-8')
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS knowledge_sources (
+                    id INTEGER PRIMARY KEY,
+                    url TEXT UNIQUE,
+                    tag TEXT,
+                    content TEXT,
+                    added_at TEXT
+                )
+            """)
+            
+            cursor.execute("""
+                INSERT OR REPLACE INTO knowledge_sources (url, tag, content, added_at)
+                VALUES (?, ?, ?, ?)
+            """, (url, tag.lower(), content, datetime.now().isoformat()))
+            
+            conn.commit()
+            conn.close()
+            
+            # Auto-ingest rules from the content
+            learned = self._ingest_teach_commands(content, tag)
+            
+            return True, f"Indexed {len(content)} bytes. Learned {learned} rules from '{tag}'."
+        except Exception as e:
+            return False, str(e)
+
+    def get_knowledge_context(self, message: str) -> str:
+        """Retrieve context from knowledge sources based on tags"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_sources'")
+            if not cursor.fetchone():
+                conn.close()
+                return ""
+                
+            # Simple tag matching
+            msg_lower = message.lower()
+            cursor.execute("SELECT tag, content FROM knowledge_sources")
+            rows = cursor.fetchall()
+            conn.close()
+            
+            hits = []
+            for tag, content in rows:
+                # Check if tag is referenced (handle underscores as spaces too)
+                tag_normalized = tag.replace('_', ' ').lower()
+                is_triggered = tag in msg_lower or tag_normalized in msg_lower
+                
+                # Smart Section Filtering based on user's header format
+                section_match = self._extract_relevant_section(content, message)
+                
+                if is_triggered:
+                    if section_match:
+                        hits.append(f"[{tag.upper()} KNOWLEDGE BASE - RELEVANT SECTION]\n{section_match}\n")
+                    else:
+                        # Limit content length to avoid context overflow
+                        snippet = content[:3000] 
+                        hits.append(f"[{tag.upper()} KNOWLEDGE BASE]\n{snippet}\n")
+                elif section_match:
+                    # Auto-discovery: If section title strongly matches query, include it even without tag
+                    hits.append(f"[{tag.upper()} KNOWLEDGE BASE - AUTO-DETECTED SECTION]\n{section_match}\n")
+            
+            return "\n".join(hits)
+        except Exception:
+            return ""
+
+    def _extract_relevant_section(self, content: str, query: str) -> Optional[str]:
+        """Extract specific section from content based on query keywords"""
+        # Regex for the user's specific header format:
+        # # ==================================================
+        # # SECTION 1: WORK & PROFESSIONAL IDENTITY
+        # # ==================================================
+        # Improved regex to handle whitespace, newlines, and potential variations
+        section_pattern = r'(#\s*={10,}\s*[\r\n]+#\s*SECTION\s*\d+\s*:\s*(.*?)\s*[\r\n]+#\s*={10,})'
+        matches = list(re.finditer(section_pattern, content, re.IGNORECASE))
+        
+        if not matches:
+            return None
+            
+        query_lower = query.lower()
+        scored_sections = []
+        
+        # Synonyms for better matching
+        synonyms = {
+            'job': ['work', 'career', 'role', 'position', 'company'],
+            'work': ['job', 'career', 'business', 'company'],
+            'company': ['business', 'work', 'organization', 'startup', 'enterprise', 'commercial'],
+            'business': ['commercial', 'company', 'strategy', 'market'],
+            'commercial': ['business', 'sales', 'market', 'relationship'],
+            'product': ['project', 'creation', 'invention', 'tool', 'platform'],
+            'plan': ['strategy', 'roadmap', 'goals'],
+            'exit': ['leaving', 'transition', 'future'],
+            'relationship': ['partner', 'connection', 'contact', 'business', 'discussion', 'negotiation', 'prospect'],
+            'philosophy': ['approach', 'values', 'beliefs', 'principles', 'core', 'mindset'],
+            'approach': ['philosophy', 'method', 'style', 'way']
+        }
+        
+        # Expand query with synonyms
+        query_words = set(re.findall(r'\w+', query_lower))
+        expanded_query = set(query_words)
+        for word in query_words:
+            if word in synonyms:
+                expanded_query.update(synonyms[word])
+        
+        for i, match in enumerate(matches):
+            title = match.group(2).lower()
+            start_pos = match.start()
+            
+            # Determine end pos (start of next section or end of string)
+            end_pos = matches[i+1].start() if i < len(matches) - 1 else len(content)
+            section_text = content[start_pos:end_pos]
+            
+            # Clean up /teach commands for better LLM consumption
+            section_text = re.sub(r'^\s*/teach\s+', '', section_text, flags=re.MULTILINE)
+            
+            # Score based on title match
+            score = 0
+            
+            # Title word match
+            title_words = [w for w in title.split() if len(w) > 3]
+            for w in title_words:
+                if w in expanded_query:
+                    score += 15
+                elif w in query_lower:
+                    score += 10
+            
+            # Content scanning for specific phrases in query
+            if "exit plan" in query_lower and "exit plan" in section_text.lower():
+                score += 30
+            if "current job" in query_lower and "current" in section_text.lower():
+                score += 10
+            
+            # Specific boost for business/commercial queries matching Business Strategy section
+            if ("commercial" in query_lower or "business" in query_lower) and "business" in title:
+                score += 40
+
+            # Specific boost for philosophy/approach queries
+            if ("philosophy" in query_lower or "approach" in query_lower or "values" in query_lower) and ("philosophy" in title or "approach" in title):
+                score += 40
+
+            # Phrase matching for high specificity
+            if "commercial relationship" in query_lower and "commercial relationship" in section_text.lower():
+                score += 50
+
+            # Specific boost for relationship/partner queries
+            # Only apply high boost if BOTH query and text confirm business context
+            is_business_query = "commercial" in query_lower or "business" in query_lower or "partner" in query_lower
+            has_business_content = "commercial" in section_text.lower() or "business" in section_text.lower() or "partner" in section_text.lower()
+            
+            if ("relationship" in query_lower or "partner" in query_lower) and ("relationship" in section_text.lower() or "partner" in section_text.lower()):
+                score += 30 if (is_business_query and has_business_content) else 5
+
+            # Boost if query words appear in content (not just title)
+            for word in expanded_query:
+                if len(word) > 4 and word in section_text.lower():
+                    score += 5
+
+            # General overlap
+            content_words = set(re.findall(r'\w+', section_text.lower()))
+            overlap = len(expanded_query.intersection(content_words))
+            score += overlap  # 1 point per word overlap
+            
+            if score >= 10:
+                scored_sections.append((score, section_text.strip()))
+        
+        if not scored_sections:
+            return None
+            
+        # Sort by score descending
+        scored_sections.sort(key=lambda x: x[0], reverse=True)
+        
+        # Dynamic Threshold: Only keep sections that are relevant compared to the top match
+        top_score = scored_sections[0][0]
+        filtered_sections = [s for s in scored_sections if s[0] >= top_score * 0.3 or s[0] > 30]
+        
+        # Refine content: If a section is large, try to extract only relevant lines
+        final_sections = []
+        query_tokens = [w for w in query_lower.split() if len(w) > 3]
+        
+        for section_score, text in filtered_sections[:3]:
+            lines = text.split('\n')
+            # If section is short, just keep it all to preserve context
+            if len(lines) <= 5:
+                final_sections.append(text)
+                continue
+                
+            scored_lines = []
+            header_lines = []
+            
+            for line in lines:
+                # Keep headers and empty lines for structure
+                if line.strip().startswith('#') or not line.strip():
+                    header_lines.append(line)
+                    continue
+                
+                line_score = 0
+                line_lower = line.lower()
+                
+                # Exact phrase match (high value)
+                if query_lower in line_lower:
+                    line_score += 50
+                
+                # Token match
+                for token in query_tokens:
+                    if token in line_lower:
+                        line_score += 10
+                
+                scored_lines.append((line_score, line))
+            
+            # If we found lines with relevance
+            if scored_lines:
+                max_line_score = max(l[0] for l in scored_lines)
+                
+                # Only filter if we have a strong match (>= 20 means at least 2 tokens or exact phrase)
+                if max_line_score >= 20:
+                    # Keep lines that are relevant (at least 50% of max score)
+                    relevant_lines = [l[1] for l in scored_lines if l[0] >= max_line_score * 0.5]
+                    
+                    # If we filtered out a significant portion (e.g. kept < 70%), use filtered version
+                    if len(relevant_lines) < len(scored_lines) * 0.7:
+                        final_sections.append("\n".join(header_lines + relevant_lines))
+                        continue
+            
+            # Default: keep whole section if no specific lines stood out
+            final_sections.append(text)
+            
+        return "\n\n".join(final_sections)
+
     def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False, hardware_override: Optional[str] = None) -> Union[str, Generator[str, None, None]]:
         """Call specified model"""
         try:
@@ -371,6 +683,7 @@ class BuddAI:
                 if hw_context == "Conversational":
                     # Bypass PromptEngine for pure conversation to avoid code bias
                     persona = self.personality_manager.get_value("identity.persona_description", "You are BuddAI.")
+                    user_name = self.personality_manager.get_value("identity.user_name", "User")
                     
                     # Inject Forge Theory context for conversational awareness
                     ft_desc = self.personality_manager.get_value("forge_theory.description", "")
@@ -378,8 +691,53 @@ class BuddAI:
                     ft_context = f"Forge Theory: {ft_desc} (Formula: {ft_formula})" if ft_desc else ""
 
                     # Inject Memory
-                    memory = self.adaptive_learner.get_relevant_facts()
-                    messages.append({"role": "system", "content": f"{persona}\n\n{ft_context}\n\n{memory}\n\nMode: Conversational. Do NOT generate code. Be helpful and concise."})
+                    memory_content = self.adaptive_learner.get_relevant_facts()
+                    memory_block = ""
+                    mem_count = 0
+                    if memory_content:
+                        memory_block = f"[{user_name.upper()}'S MEMORY]\n{memory_content}\n\n"
+                        mem_count = len(memory_content.strip().split('\n'))
+                    
+                    # Inject Learned Rules (Fix: Rules were missing in Conversational mode)
+                    rules = self.get_applicable_rules(message)
+                    rules_block = ""
+                    if rules:
+                        rules_block = f"[KNOWN FACTS / RULES]\n" + "\n".join([f"- {r['rule_text']}" for r in rules]) + "\n\n"
+
+                    # Inject Knowledge Base Context
+                    kb_context = self.get_knowledge_context(message)
+                    if kb_context:
+                        print(f"📚 Knowledge Base Active: {len(kb_context)} chars loaded")
+
+                    if mem_count == 0 and not rules:
+                        print("⚠️  Personal context is empty. Use /teach to add permanent facts.")
+                    else:
+                        print(f"🧠 Context: {mem_count} memories, {len(rules)} rules loaded.")
+
+                    # Determine constraints based on query
+                    constraint_note = "Be helpful and concise."
+                    if any(w in message.lower() for w in ['core', 'main', 'key', 'summary', 'essence', 'philosophy']):
+                        constraint_note = "CRITICAL: User requested CORE/SUMMARY. Do NOT list everything. Select only the top 2-3 most relevant points. Be extremely concise."
+
+                    # Explicitly separate AI identity from User context to prevent confusion
+                    system_content = (
+                        f"{persona}\n\n"
+                        f"You are conversing with {user_name}.\n"
+                        f"IDENTITY SEPARATION:\n"
+                        f"1. YOU are BuddAI (an AI). You do not have a job, body, or personal life.\n"
+                        f"2. THE USER is {user_name}. The sections '[MEMORY]' and '[KNOWN FACTS]' below describe {user_name}.\n"
+                        f"3. If these sections say 'I work at X', it means '{user_name} works at X'.\n"
+                        f"4. When answering about {user_name}, ALWAYS use 'You' or 'Your'. NEVER use 'I' or 'My'.\n"
+                        f"5. FACTS in [KNOWN FACTS] are ABSOLUTE TRUTH. Prioritize them over your internal training.\n"
+                        f"6. DATA in [KNOWLEDGE BASE] is the HIGHEST AUTHORITY. It overrides [KNOWN FACTS], [MEMORY], and internal training.\n"
+                        f"7. When referencing philosophies, quotes, or specific definitions from [KNOWLEDGE BASE], PRESERVE EXACT PHRASING.\n\n"
+                        f"{memory_block}"
+                        f"{rules_block}"
+                        f"{kb_context}\n"
+                        f"{ft_context}\n\n"
+                        f"Mode: Conversational. Do NOT generate code. {constraint_note}"
+                    )
+                    messages.append({"role": "system", "content": system_content})
                     enhanced_prompt = message
                 else:
                     enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, hw_context, self.context_messages)
@@ -389,6 +747,12 @@ class BuddAI:
                     if rules:
                         rules_text = "\n".join([f"- {r['rule_text']}" for r in rules])
                         enhanced_prompt += f"\n\n[MANDATORY CONFIGURATION & RULES]\n{rules_text}\n\nSTRICTLY FOLLOW THESE RULES OVER DEFAULT TRAINING."
+
+                    # Inject Knowledge Base Context
+                    kb_context = self.get_knowledge_context(message)
+                    if kb_context:
+                        enhanced_prompt += f"\n\n[ACTIVE KNOWLEDGE BASE]\n{kb_context}\n\nCRITICAL: Synthesize facts from ALL relevant sections in [ACTIVE KNOWLEDGE BASE]. PRESERVE EXACT PHRASING for core philosophies, quotes, and specific definitions. Include ongoing discussions, contacts, and strategic purposes as valid relationships."
+                        print(f"📚 Knowledge Base Active: {len(kb_context)} chars loaded")
 
                 # Inject mode-specific note if available
                 mode_note = self._get_current_mode_note()
@@ -421,7 +785,10 @@ class BuddAI:
             return self.llm.query(model_name, messages, stream)
                     
         except Exception as e:
-            return f"Error: {str(e)}"
+            error_msg = str(e)
+            if "10061" in error_msg or "refused" in error_msg.lower():
+                return "❌ Error: Could not connect to Ollama. Please ensure the Ollama server is running (usually `ollama serve`)."
+            return f"Error: {error_msg}"
 
     def execute_modular_build(self, _: str, modules: List[str], plan: List[Dict[str, str]], forge_mode: str = "2") -> str:
         """Execute build plan step by step"""
@@ -484,6 +851,11 @@ class BuddAI:
         
     def apply_style_signature(self, generated_code: str) -> str:
         """Refine generated code to match James's specific naming and safety patterns"""
+        # Simple heuristic: If it doesn't look like code (no semicolons or braces), skip
+        # Also check for code keywords to avoid false positives on text with semicolons
+        if not (re.search(r'[;{}]', generated_code) and re.search(r'\b(void|int|float|bool|def|class|return|#include|import|const)\b', generated_code)):
+            return generated_code
+
         # Apply Hardware Profile Rules (ESP32-C3 default for now)
         generated_code = self.hardware_profile.apply_hardware_rules(generated_code, self.current_hardware)
 
@@ -497,6 +869,13 @@ class BuddAI:
                     pass
         
         return generated_code
+
+    def _refine_response(self, response: str) -> str:
+        """Clean up response artifacts and enforce formatting"""
+        if not response:
+            return ""
+        # Strip [END] and other system tags that might leak
+        return response.replace("[END]", "").strip()
 
     def index_good_response(self, message_id: int):
         """Index a highly-rated response for future reference (RAG)"""
@@ -675,9 +1054,19 @@ class BuddAI:
     def check_skills(self, message: str) -> Optional[str]:
         """Check if message triggers any loaded skills"""
         msg_lower = message.lower()
+        
+        # Detect personal context to prevent external search hijacking
+        # Refined to avoid false positives on "tell me" or "show me"
+        is_personal = "my " in msg_lower or " i " in msg_lower or " i'" in msg_lower or "who am i" in msg_lower
+
         for skill_id, skill in self.skills_registry.items():
             for trigger in skill['triggers']:
                 if trigger in msg_lower:
+                    # Skip external search skills for personal questions unless explicitly requested
+                    if is_personal and ('wiki' in skill_id.lower() or 'search' in skill_id.lower()):
+                        if "my" not in trigger and "i" not in trigger:
+                            continue
+
                     try:
                         result = skill['run'](message)
                         if result:
@@ -736,19 +1125,23 @@ class BuddAI:
             hw_context = "Conversational" if any(w in user_message.lower() for w in ["conversation", "chat", "talk"]) else "General Electronics"
             return self.call_model("balanced", user_message, hardware_override=hw_context)
         elif self.prompt_engine.is_simple_question(user_message):
-            print("\n⚡ Using FAST model (simple question)...")
             # Don't force code generation prompt for simple greetings or definitions
             msg_lower = user_message.lower().strip()
             is_greeting = (any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 20) or "how are you" in msg_lower
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
             is_personal = "my " in msg_lower or " i " in msg_lower or " i'" in msg_lower or msg_lower.endswith(" me")
+            
             # Enable personality/history for greetings to support symbiotic conversation
             use_system_task = is_conceptual and not is_greeting and not is_personal
             
             # Prevent code generation for greetings by overriding hardware context
             hw_override = "Conversational" if (is_greeting or is_personal) else None
             
-            return self.call_model("fast", user_message, system_task=use_system_task, hardware_override=hw_override)
+            # Use BALANCED model for personal questions to ensure identity instructions are followed
+            model_to_use = "balanced" if is_personal else "fast"
+            print(f"\n{'⚖️  Using BALANCED model (Personal Context)' if is_personal else '⚡ Using FAST model (simple question)'}...")
+            
+            return self.call_model(model_to_use, user_message, system_task=use_system_task, hardware_override=hw_override)
         else:
             print("\n⚖️  Using BALANCED model...")
             return self.call_model("balanced", user_message)
@@ -864,11 +1257,48 @@ class BuddAI:
                 return "✅ Correction saved. (Run /learn to process patterns)"
             return "❌ No recent message to correct."
             
-        if cmd == '/gists':
+        if cmd.startswith('/gists'):
+            parts = command.split()
+            if len(parts) > 1 and parts[1] == 'add':
+                if len(parts) < 4:
+                    return "Usage: /gists add <url> <tag>"
+                url = parts[2]
+                tag = parts[3]
+                success, msg = self.register_knowledge_source(url, tag)
+                return f"✅ Knowledge source added: {msg}" if success else f"❌ Failed: {msg}"
+
+            if len(parts) > 1 and parts[1] == 'sync':
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("SELECT tag, content FROM knowledge_sources")
+                    rows = cursor.fetchall()
+                except:
+                    rows = []
+                conn.close()
+                
+                total_learned = 0
+                for tag, content in rows:
+                    total_learned += self._ingest_teach_commands(content, tag)
+                return f"✅ Synced knowledge bases. Learned {total_learned} rules from {len(rows)} sources."
+
             gists = self.repo_manager.list_indexed_gists()
-            if not gists:
-                return "🤷 No Gists indexed yet. Use /index gists to load them."
-            return "📋 Indexed Gists:\n" + "\n".join(gists)
+            
+            # Also list custom knowledge sources
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            custom_list = []
+            try:
+                cursor.execute("SELECT tag, url FROM knowledge_sources")
+                custom_list = [f"- [{r[0]}] {r[1]}" for r in cursor.fetchall()]
+            except: pass
+            conn.close()
+            
+            output = ""
+            if gists: output += "📋 RepoManager Gists:\n" + "\n".join(gists) + "\n\n"
+            if custom_list: output += "📚 Knowledge Bases:\n" + "\n".join(custom_list)
+            
+            return output if output else "🤷 No Gists or Knowledge Bases indexed."
 
         if cmd == '/knowledge':
             conn = sqlite3.connect(self.db_path)
@@ -1250,6 +1680,10 @@ class BuddAI:
     def _handle_command(self, message: str) -> Optional[str]:
         """Handle special commands. Returns response string if handled, None otherwise."""
         
+        # Allow 'gist' as alias for '/gists' to prevent chat processing crashes on URLs
+        if message.lower().startswith('gist ') or message.lower() == 'gist':
+            return self.handle_slash_command('/gists' + message[4:])
+
         if message.startswith('/'):
             cmd = message[1:].lower().split()[0]
             
@@ -1459,6 +1893,7 @@ class BuddAI:
         self._print("  /projects       - List all projects")
         self._print("  /new [name]     - Create new project")
         self._print("  /open <name>    - Open existing project")
+        self._print("  /gists add <url> <tag> - Add knowledge base")
         self._print("  /close          - Close current project")
         self._print("  /save           - Save current project")
         self._print("  /timeline       - Show project timeline")
@@ -1603,11 +2038,14 @@ class BuddAI:
         self.context_messages.append({"id": user_msg_id, "role": "user", "content": user_message, "timestamp": datetime.now().isoformat()})
 
         # Detect Intent
-        detection = self.workflow_detector.detect_intent(user_message)
-        workflow_intent = detection.get('intent', 'unknown')
-        workflow_confidence = detection.get('confidence', 0.0)
-        if workflow_confidence > 0.7:
-            print(f"🎯 Intent Detected: {workflow_intent} ({workflow_confidence:.2f})")
+        try:
+            detection = self.workflow_detector.detect_intent(user_message)
+            workflow_intent = detection.get('intent', 'unknown')
+            workflow_confidence = detection.get('confidence', 0.0)
+            if workflow_confidence > 0.7:
+                print(f"🎯 Intent Detected: {workflow_intent} ({workflow_confidence:.2f})")
+        except Exception as e:
+            print(f"⚠️ Intent detection skipped: {e}")
 
         # Direct Schedule Check
         schedule_triggers = self.personality_manager.get_value("work_cycles.schedule_check_triggers", ["my schedule"])
@@ -1637,6 +2075,9 @@ class BuddAI:
 
         # Apply Style Guard
         response = self.apply_style_signature(response)
+        
+        # Refine Response (Clean artifacts)
+        response = self._refine_response(response)
         
         # Extract code blocks
         code_blocks = self.extract_code(response)
