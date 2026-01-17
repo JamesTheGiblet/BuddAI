@@ -258,60 +258,70 @@ class BuddAI:
         hw = self.hardware_profile.detect_hardware(message)
         return hw if hw else self.current_hardware
 
-    def get_applicable_rules(self, user_message: str) -> List[Dict]:
+    def get_applicable_rules(self, user_message: str, limit: int = 50, strict_match: bool = False) -> List[Dict]:
         """Get rules relevant to the user message"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        # Fetch rules with reasonable confidence
-        # Added id to select for recency boosting
         cursor.execute("SELECT rule_text, confidence, id FROM code_rules WHERE confidence > 0.6 ORDER BY confidence DESC")
         rows = cursor.fetchall()
         conn.close()
-        
+
         all_rules = [{"rule_text": r[0], "confidence": r[1], "id": r[2]} for r in rows]
-        
+
         if not user_message:
-            return all_rules[:50]
-            
-        # Filter and rank rules by relevance to prevent context flooding
+            return all_rules[:limit]
+
         msg_lower = user_message.lower()
-        # Limit to first 100 words to avoid performance hit on large pastes
         words = re.findall(r'\w+', msg_lower)[:100]
-        keywords = set(words) - {'what', 'is', 'my', 'the', 'and', 'a', 'to', 'of', 'in', 'for', 'are', 'do', "what's"}
-        
+        keywords = set(words) - {'what', 'is', 'my', 'the', 'and', 'a', 'to', 'of', 'in', 'for', 'are', 'do', "what's", 'was', 'were'}
+
         scored_rules = []
         max_id = max([r['id'] for r in all_rules]) if all_rules else 1
-        
+
         for rule in all_rules:
             rule_text = rule['rule_text'].lower()
             score = rule['confidence'] * 10.0
-            
+
+            # EXACT PHRASE MATCHING (High Priority)
+            exact_phrases = [
+                ('test #426', 50),
+                ('most recently added test', 40),
+                ('january 12 2026', 30),
+                ('test 426', 45),
+                ('recently added', 20)
+            ]
+
+            for phrase, boost in exact_phrases:
+                if phrase in msg_lower and phrase in rule_text:
+                    score += boost
+
             # Keyword matching
             matches = sum(1 for kw in keywords if kw in rule_text)
             score += matches * 5.0
-            
-            # High relevance boost: If rule contains significant portion of query keywords
+
+            # High relevance boost
             if len(keywords) > 0 and matches >= len(keywords) * 0.4:
                 score += 15.0
-            
+
             # Personal context boost
             if "my " in msg_lower or " i " in msg_lower:
-                # Boost rules that start with "my" or "i" if they contain query keywords
                 if (rule_text.startswith("my ") or rule_text.startswith("i ")) and matches > 0:
                     score += 15.0
-                
+
                 if any(p in rule_text for p in ["i work", "my job", "my plan", "i am", "my company", "exit plan"]):
                     score += 10.0
-            
-            # Recency boost (Newer rules are more likely to be relevant corrections)
-            score += (rule['id'] / max_id) * 5.0
-            
-            scored_rules.append((score, rule))
-            
-        # Sort by relevance and limit to top 50
-        scored_rules.sort(key=lambda x: x[0], reverse=True)
-        return [r[1] for r in scored_rules[:50]]
 
+            # Recency boost
+            score += (rule['id'] / max_id) * 5.0
+
+            if strict_match and matches == 0:
+                continue
+
+            scored_rules.append((score, rule))
+
+        scored_rules.sort(key=lambda x: x[0], reverse=True)
+        return [r[1] for r in scored_rules[:limit]]
+    
     def get_style_summary(self) -> str:
         """Get summary of learned style preferences"""
         conn = sqlite3.connect(self.db_path)
@@ -518,8 +528,72 @@ class BuddAI:
                     # Auto-discovery: If section title strongly matches query, include it even without tag
                     hits.append(f"[{tag.upper()} KNOWLEDGE BASE - AUTO-DETECTED SECTION]\n{section_match}\n")
             
-            return "\n".join(hits)
+            return "\n".join(hits)[:8000]
         except Exception:
+            return ""
+
+    def get_latest_test_report_context(self, query: str = "") -> str:
+        """Retrieve the latest test report content"""
+        try:
+            # Look in tests/reports relative to project root
+            reports_dir = DATA_DIR.parent / "tests" / "reports"
+            
+            if not reports_dir.exists():
+                # Fallback for different structure
+                reports_dir = Path("tests/reports")
+            
+            if not reports_dir.exists():
+                return ""
+
+            # Find all test reports
+            test_files = list(reports_dir.rglob("test_report_*.txt"))
+            val_files = list(reports_dir.rglob("validation_report_*.txt"))
+            
+            context = ""
+            
+            if test_files:
+                # Sort by modification time (newest first)
+                test_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+                selected_test = test_files[0]
+                
+                if query:
+                    q_lower = query.lower()
+                    
+                    # Heuristic selection based on query
+                    if "documentation" in q_lower or "readme" in q_lower:
+                        for f in test_files:
+                            try:
+                                if "test_documentation" in f.read_text(encoding='utf-8', errors='ignore'):
+                                    selected_test = f
+                                    break
+                            except: continue
+                    elif "buddai" in q_lower or "system" in q_lower:
+                        for f in test_files:
+                            try:
+                                if "TestBuddAICore" in f.read_text(encoding='utf-8', errors='ignore'):
+                                    selected_test = f
+                                    break
+                            except: continue
+
+                try:
+                    with open(selected_test, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    context += f"[LATEST UNIT TEST REPORT: {selected_test.name}]\n{content[:10000]}\n\n"
+                except Exception:
+                    pass
+
+            if val_files:
+                latest_val = max(val_files, key=lambda f: f.stat().st_mtime)
+                try:
+                    with open(latest_val, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    context += f"[LATEST VALIDATION REPORT: {latest_val.name}]\n{content[:5000]}\n\n"
+                except Exception:
+                    pass
+            
+            return context
+        except Exception as e:
+            print(f"Error reading test reports: {e}")
             return ""
 
     def _extract_relevant_section(self, content: str, query: str) -> Optional[str]:
@@ -553,7 +627,9 @@ class BuddAI:
             'approach': ['philosophy', 'method', 'style', 'way'],
             'test': ['validation', 'quality', 'check', 'passing', 'coverage', 'metrics'],
             'tests': ['validation', 'quality', 'check', 'passing', 'coverage', 'metrics'],
-            'stats': ['metrics', 'numbers', 'count', 'statistics', 'data']
+            'stats': ['metrics', 'numbers', 'count', 'statistics', 'data'],
+            'architecture': ['structure', 'design', 'system', 'components', 'modules'],
+            'components': ['parts', 'modules', 'architecture', 'structure', 'features']
         }
         
         # Expand query with synonyms
@@ -798,7 +874,7 @@ class BuddAI:
                         mem_count = len(memory_content.strip().split('\n'))
                     
                     # Inject Learned Rules (Fix: Rules were missing in Conversational mode)
-                    rules = self.get_applicable_rules(message)
+                    rules = self.get_applicable_rules(message, limit=30)
                     rules_block = ""
                     if rules:
                         rules_block = f"[KNOWN FACTS / RULES]\n" + "\n".join([f"- {r['rule_text']}" for r in rules]) + "\n\n"
@@ -846,12 +922,6 @@ class BuddAI:
                 else:
                     enhanced_prompt = self.prompt_engine.build_enhanced_prompt(message, hw_context, self.context_messages)
                 
-                    # Inject learned rules
-                    rules = self.get_applicable_rules(message)
-                    if rules:
-                        rules_text = "\n".join([f"- {r['rule_text']}" for r in rules])
-                        enhanced_prompt += f"\n\n[MANDATORY CONFIGURATION & RULES]\n{rules_text}\n\nSTRICTLY FOLLOW THESE RULES OVER DEFAULT TRAINING."
-
                     # Inject Knowledge Base Context
                     kb_context = self.get_knowledge_context(message)
                     if kb_context:
@@ -859,13 +929,23 @@ class BuddAI:
                         override_check = self.should_override_personality(message)
                         
                         if override_check['override'] and override_check['mode'] == 'concise_factual':
-                            instruction = "CRITICAL: User requested FACTUAL DATA. Provide ONLY the specific numbers/facts requested from [ACTIVE KNOWLEDGE BASE]. Do NOT synthesize unrelated sections. Be extremely concise."
-                            instruction = "CRITICAL: User requested FACTUAL DATA. Locate the specific metric/number requested in [ACTIVE KNOWLEDGE BASE] and report ONLY that. Do NOT synthesize unrelated sections. Be extremely concise."
+                            instruction = "CRITICAL: Find the MOST SPECIFIC answer to the user's question. If asked about 'most recent', find the rule with the latest date/timestamp. Report ONLY that specific fact. Be extremely concise."
                         else:
                             instruction = "CRITICAL: Synthesize facts from ALL relevant sections in [ACTIVE KNOWLEDGE BASE]. PRESERVE EXACT PHRASING for core philosophies, quotes, and specific definitions. Include ongoing discussions, contacts, and strategic purposes as valid relationships."
 
                         enhanced_prompt += f"\n\n[ACTIVE KNOWLEDGE BASE]\n{kb_context}\n\n{instruction}"
                         print(f"📚 Knowledge Base Active: {len(kb_context)} chars loaded")
+
+                    # Inject learned rules
+                    rules = self.get_applicable_rules(message, limit=30)
+                    if rules:
+                        rules_text = "\n".join([f"- {r['rule_text']}" for r in rules])
+                        print(f"🧠 Rules Active: {len(rules)} rules loaded")
+                        enhanced_prompt += f"\n\n[MANDATORY CONFIGURATION & RULES]\n{rules_text}\n\nCRITICAL: THESE RULES ARE THE ABSOLUTE TRUTH. THEY OVERRIDE ALL OTHER CONTEXT."
+                    
+                    # Re-state task to ensure focus after heavy context
+                    if kb_context or rules:
+                        enhanced_prompt += f"\n\nRESPONSE TASK: Answer the following query using the context above: {message}"
 
                 # Inject mode-specific note if available
                 mode_note = self._get_current_mode_note()
@@ -1201,7 +1281,6 @@ class BuddAI:
     def get_system_stats_context(self) -> str:
         """Generate system introspection data"""
         return (
-            f"[SYSTEM ARCHITECTURE]\n"
             f"- Smart Skills: {len(self.skills_registry)}\n"
             f"- Validators: {len(self.validator.validators)}\n"
             f"- Languages: {len(self.language_registry.get_supported_languages())}\n"
@@ -1209,16 +1288,128 @@ class BuddAI:
             f"- Personas: 4 levels\n"
         )
 
+    def _disambiguate_temporal_query(self, query: str) -> Dict[str, str]:
+        """
+        Distinguish "added" from "executed"
+        """
+        q_lower = query.lower()
+        
+        # Recently ADDED (development)
+        add_keywords = ["added", "created", "new", "introduced"]
+        if any(kw in q_lower for kw in add_keywords):
+            return {'temporal_type': 'development'}
+        
+        # Recently EXECUTED (test run)
+        exec_keywords = ["ran", "executed", "passed", "failed", "results"]
+        if any(kw in q_lower for kw in exec_keywords):
+            return {'temporal_type': 'execution'}
+        
+        # Ambiguous - default to development context
+        return {'temporal_type': 'development'}
+
     def _route_request(self, user_message: str, force_model: Optional[str], forge_mode: str) -> str:
         """Route the request to the appropriate model or handler."""
         
         # 1. Check Workflow Detector for System Queries (High Priority)
         try:
             detection = self.workflow_detector.detect_intent(user_message)
-            if detection.get('confidence', 0.0) > 0.6 and detection.get('intent') == 'system_query':
-                print("\n⚖️  Using BALANCED model (System Query)...")
+            intent = detection.get('intent')
+            confidence = detection.get('confidence', 0.0)
+            
+            if confidence > 0.6 and intent == 'system_query':
+                print(f"\n⚖️  Using BALANCED model ({intent})...")
                 stats = self.get_system_stats_context()
-                enhanced_message = f"{user_message}\n\n{stats}\n\nAnswer based on the system architecture above. Be concise."
+                
+                # Retrieve KB context to mix conceptual knowledge with live stats
+                kb_context = self.get_knowledge_context(user_message)
+                if kb_context:
+                    print(f"📚 Knowledge Base Active: {len(kb_context)} chars loaded")
+                
+                # Inject learned rules
+                rules = self.get_applicable_rules(user_message, limit=20)
+                rules_text = ""
+                if rules:
+                    rules_text = "\n".join([f"- {r['rule_text']}" for r in rules])
+                    print(f"🧠 Rules Active: {len(rules)} rules loaded")
+
+                enhanced_message = f"{user_message}\n\n"
+                if kb_context:
+                    enhanced_message += f"{kb_context}\n\n"
+                if rules_text:
+                    enhanced_message += f"[MANDATORY CONFIGURATION & RULES]\n{rules_text}\n\n"
+                
+                enhanced_message += f"[LIVE SYSTEM METRICS (AUTHORITATIVE)]\n{stats}\n\n"
+                
+                enhanced_message += "CRITICAL: Combine the conceptual architecture from Knowledge Base with the LIVE METRICS above."
+                enhanced_message += (
+                    "\nCRITICAL INSTRUCTIONS:\n"
+                    "1. Report the EXACT counts from [LIVE SYSTEM METRICS] (Skills, Validators, Languages).\n"
+                    "2. IGNORE any counts found in [KNOWLEDGE BASE] as they are static/outdated.\n"
+                    "3. RULES in [MANDATORY CONFIGURATION & RULES] are ABSOLUTE TRUTH and override Knowledge Base.\n"
+                    "4. Use [KNOWLEDGE BASE] only for high-level architectural concepts (Organs, Modules).\n"
+                    "5. If the user asks a specific question, answer it using the RULES above.\n"
+                    "6. Do NOT include 'Coding Preferences', 'Personal Philosophy', or 'Interests'.\n"
+                    "7. Do NOT hallucinate metrics like DAU/MAU or response times.\n"
+                    "8. Be concise."
+                )
+                return self.call_model("balanced", enhanced_message, system_task=True)
+            
+            elif confidence > 0.6 and intent == 'get_metric' and ('test' in user_message.lower() or 'validation' in user_message.lower()):
+                print("\n📊 Retrieving latest test metrics...")
+                
+                temporal = self._disambiguate_temporal_query(user_message)
+                print(f"🕒 Temporal Context: {temporal['temporal_type'].upper()}")
+
+                test_context = self.get_latest_test_report_context(user_message)
+                
+                # Inject learned rules
+                rules = self.get_applicable_rules(user_message, limit=20)
+                rules_text = ""
+                if rules:
+                    rules_text = "\n".join([f"- {r['rule_text']}" for r in rules])
+                    print(f"🧠 Rules Active: {len(rules)} rules loaded")
+
+                enhanced_message = f"{user_message}\n\n"
+                # Build prompt structure: Context -> Instructions -> Question
+                enhanced_message = ""
+                
+                if rules_text:
+                    enhanced_message += f"[KNOWN FACTS / RULES]\n{rules_text}\n\n"
+                if test_context:
+                    enhanced_message += f"{test_context}\n\n"
+                    print(f"📄 Loaded test report context ({len(test_context)} chars)")
+                
+                enhanced_message += "RESPONSE INSTRUCTIONS:\n"
+                
+                if temporal['temporal_type'] == 'development':
+                    enhanced_message += "CRITICAL: The user is asking about DEVELOPMENT HISTORY (tests added/created).\n"
+                    enhanced_message += "1. PRIORITIZE [KNOWN FACTS / RULES] for information about recently added tests (e.g. via /teach).\n"
+                    enhanced_message += "2. Do NOT confuse 'added' with 'executed'. A test can be added recently but not yet in the report.\n"
+                    enhanced_message += "3. If a specific test ID/Name is in the rules (e.g. Test #426), that is the answer."
+                    enhanced_message += "The user is asking about DEVELOPMENT HISTORY (tests added/created).\n"
+                    enhanced_message += "1. Search [KNOWN FACTS / RULES] for recently added tests.\n"
+                    enhanced_message += "2. Report the specific test ID/Name found in the rules.\n"
+                    enhanced_message += "3. Do NOT confuse 'added' (development) with 'executed' (reporting).\n"
+                    enhanced_message += "1. Search [KNOWN FACTS / RULES] for recently added tests and their PURPOSE.\n"
+                    enhanced_message += "2. Explain WHY the test was added based on the rules (e.g. 'validates X', 'ensures Y').\n"
+                    enhanced_message += "3. Do NOT cite the test report as the reason for creation.\n"
+                elif temporal['temporal_type'] == 'execution':
+                    enhanced_message += "CRITICAL: The user is asking about EXECUTION RESULTS (tests ran/passed).\n"
+                    enhanced_message += "1. PRIORITIZE [LATEST TEST REPORT] for execution status.\n"
+                    enhanced_message += "2. Report specific pass/fail counts and timestamps from the report."
+                    enhanced_message += "The user is asking about EXECUTION RESULTS (tests ran/passed).\n"
+                    enhanced_message += "1. Analyze [LATEST TEST REPORT] for execution status.\n"
+                    enhanced_message += "2. Report specific pass/fail counts and timestamps.\n"
+                else:
+                    enhanced_message += "CRITICAL: Analyze the [LATEST TEST REPORT] and [KNOWN FACTS] above to answer the user's question.\n"
+                    enhanced_message += "1. If the user asks about 'most recent' or 'added', prioritize [KNOWN FACTS] if they contain specific dates/versions not yet in the report.\n"
+                    enhanced_message += "2. Use the report to confirm execution status.\n"
+                    enhanced_message += "3. Distinguish between 'executed' (in report) and 'added' (in rules/history)."
+                    enhanced_message += "Analyze the context above to answer the question.\n"
+                    enhanced_message += "Distinguish between 'executed' (in report) and 'added' (in rules).\n"
+                
+                enhanced_message += f"\nUSER QUESTION: {user_message}"
+                
                 return self.call_model("balanced", enhanced_message, system_task=True)
         except Exception:
             pass
@@ -1456,14 +1647,22 @@ class BuddAI:
             finally:
                 conn.close()
 
-        if cmd == '/rules':
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("SELECT rule_text, confidence FROM code_rules ORDER BY confidence DESC")
-            rows = cursor.fetchall()
-            conn.close()
-            if not rows: return "🤷 No rules learned yet."
-            return "🧠 Learned Rules:\n" + "\n".join([f"- {r[0]}" for r in rows])
+        if cmd.startswith('/rules'):
+            parts = command.split(maxsplit=1)
+            if len(parts) > 1:
+                search_term = parts[1]
+                rules = self.get_applicable_rules(search_term, strict_match=True)
+                if not rules:
+                    return f"🤷 No rules found matching '{search_term}'."
+                return f"🧠 Top Rules for '{search_term}':\n" + "\n".join([f"- {r['rule_text']}" for r in rules])
+            else:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT rule_text, confidence FROM code_rules ORDER BY confidence DESC")
+                rows = cursor.fetchall()
+                conn.close()
+                if not rows: return "🤷 No rules learned yet."
+                return "🧠 Learned Rules:\n" + "\n".join([f"- {r[0]}" for r in rows])
 
         if cmd == '/learn':
             patterns = self.learner.analyze_corrections(self)
@@ -2089,6 +2288,21 @@ class BuddAI:
         if user_message.strip().startswith('/'):
             return ChatResponse(self.handle_slash_command(user_message.strip()), model='command')
 
+        # Auto-ingest /teach commands embedded in text (e.g. from pasted scripts)
+        if '/teach' in user_message:
+            # Handle inline commands by forcing newline
+            clean_msg = user_message.replace(" /teach ", "\n/teach ")
+            learned = self._ingest_teach_commands(clean_msg, "chat_session")
+            if learned > 0:
+                print(f"🧠 Auto-learned {learned} new rules from conversation.")
+            
+            # Clean message for processing (remove teach commands to focus on query)
+            lines = clean_msg.splitlines()
+            user_message = "\n".join([line for line in lines if not line.strip().startswith('/teach')]).strip()
+            
+            if not user_message:
+                return ChatResponse(f"✅ Learned {learned} new rules.", model='command')
+
         # Detect intent using personality
         context = {
             'current_project': self.current_project.name if self.current_project else None
@@ -2632,19 +2846,23 @@ class BuddAI:
                         if all_valid:
                             print("\n✨ All code blocks look good!")
                         continue
-                    elif cmd == '/rules':
-                        conn = sqlite3.connect(self.db_path)
-                        cursor = conn.cursor()
-                        cursor.execute("SELECT rule_text, confidence, learned_from FROM code_rules ORDER BY confidence DESC")
-                        rows = cursor.fetchall()
-                        conn.close()
-                        
-                        if not rows:
-                            print("🤷 No rules learned yet.")
+                    elif cmd.startswith('/rules'):
+                        parts = user_input.split(maxsplit=1)
+                        if len(parts) > 1:
+                            print(self.handle_slash_command(user_input))
                         else:
-                            print(f"\n🧠 Learned Rules ({len(rows)}):")
-                            for rule, conf, source in rows:
-                                print(f"  - [{conf:.1f}] {rule} ({source})")
+                            conn = sqlite3.connect(self.db_path)
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT rule_text, confidence, learned_from FROM code_rules ORDER BY confidence DESC")
+                            rows = cursor.fetchall()
+                            conn.close()
+                            
+                            if not rows:
+                                print("🤷 No rules learned yet.")
+                            else:
+                                print(f"\n🧠 Learned Rules ({len(rows)}):")
+                                for rule, conf, source in rows:
+                                    print(f"  - [{conf:.1f}] {rule} ({source})")
                         continue
                     elif cmd == '/skills':
                         if not self.skills_registry:

@@ -133,13 +133,16 @@ class WorkflowDetector:
                 ]
             },
             'get_metric': {
-                'keywords': ['how many', 'count', 'number', 'total', 'stats', 'metrics', 'accuracy', 'pass rate'],
-                'objects': ['tests', 'rules', 'projects', 'files', 'lines', 'coverage'],
+                'keywords': ['how many', 'count', 'number', 'total', 'stats', 'metrics', 'accuracy', 'pass rate', 'recent', 'recently', 'last', 'latest', 'added', 'current'],
+                'objects': ['tests', 'test', 'rules', 'projects', 'files', 'lines', 'coverage'],
                 'patterns': [
                     r'how\s+many',
                     r'what\s+is\s+the\s+(?:count|number|total)',
                     r'show\s+(?:me\s+)?(?:the\s+)?(?:stats|metrics)',
-                    r'what\'s\s+my\s+(?:job|company|product|accuracy)'
+                    r'what\'s\s+my\s+(?:job|company|product|accuracy)',
+                    r'what\s+(?:test|tests)\s+(?:was|were)\s+(?:added|created)',
+                    r'(?:most\s+)?recent(?:ly)?\s+(?:added|created)',
+                    r'last\s+(?:test|tests)\s+added'
                 ],
                 'examples': [
                     'how many tests do we have',
