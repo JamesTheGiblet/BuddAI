@@ -45,6 +45,22 @@ ALLOWED_TYPES = [
 ]
 MAX_UPLOAD_FILES = 20
 
+# Route different intents to different personality profiles
+PERSONALITY_PROFILES = {
+    'conversational': {
+        'rules': ['calm', 'supportive', 'structured'],
+        'disable': ['slow', 'checklist', 'methodical']
+    },
+    'engineering': {
+        'rules': 'all',  # Full personality
+        'disable': []
+    },
+    'factual': {
+        'rules': ['calm', 'clear'],
+        'disable': ['slow', 'checklist', 'decision_trees']
+    }
+}
+
 class ChatResponse(str):
     """String subclass that carries metadata"""
     def __new__(cls, content, model=None, intent=None):
@@ -98,7 +114,7 @@ class BuddAI:
         
         # Auto-register James's Personality Gist
         def _load_james_personality():
-            url = "https://gist.githubusercontent.com/JamesTheGiblet/ead7080eb60e1e3b465a37a3cd8eeed1/raw/007a8758417b8ee1af4b946f038ec23d69920155/gistfile1.txt"
+            url = "https://gist.githubusercontent.com/JamesTheGiblet/afe02934874f7e8275f4b06fabe4a4cf/raw/6114d6221a75cb7cf5aaba8b8ac066155a17386f/gistfile1.txt"
             success, msg = self.register_knowledge_source(url, "James")
             if success:
                 try:
@@ -534,11 +550,19 @@ class BuddAI:
             'exit': ['leaving', 'transition', 'future'],
             'relationship': ['partner', 'connection', 'contact', 'business', 'discussion', 'negotiation', 'prospect'],
             'philosophy': ['approach', 'values', 'beliefs', 'principles', 'core', 'mindset'],
-            'approach': ['philosophy', 'method', 'style', 'way']
+            'approach': ['philosophy', 'method', 'style', 'way'],
+            'test': ['validation', 'quality', 'check', 'passing', 'coverage', 'metrics'],
+            'tests': ['validation', 'quality', 'check', 'passing', 'coverage', 'metrics'],
+            'stats': ['metrics', 'numbers', 'count', 'statistics', 'data']
         }
         
         # Expand query with synonyms
         query_words = set(re.findall(r'\w+', query_lower))
+        
+        # Filter stop words to prevent broad matching on common terms
+        stop_words = {'buddai', 'james', 'does', 'have', 'what', 'when', 'where', 'which', 'this', 'that', 'with', 'from', 'about', 'how', 'many', 'currently', 'section'}
+        query_words = {w for w in query_words if w not in stop_words}
+        
         expanded_query = set(query_words)
         for word in query_words:
             if word in synonyms:
@@ -563,7 +587,7 @@ class BuddAI:
             for w in title_words:
                 if w in expanded_query:
                     score += 15
-                elif w in query_lower:
+                elif w in query_lower and w not in stop_words:
                     score += 10
             
             # Content scanning for specific phrases in query
@@ -594,8 +618,21 @@ class BuddAI:
 
             # Boost if query words appear in content (not just title)
             for word in expanded_query:
-                if len(word) > 4 and word in section_text.lower():
-                    score += 5
+                if len(word) >= 4 and word in section_text.lower():
+                    if word in query_words:
+                        score += 10
+                    else:
+                        score += 2
+
+            # Boost for numerical queries
+            if "how many" in query_lower or "count" in query_lower:
+                # Exclude section headers from numerical check to avoid matching "SECTION 1"
+                body_text = re.sub(r'^#.*$', '', section_text, flags=re.MULTILINE)
+                if re.search(r'\d+', body_text):
+                    if score > 0:  # Only boost if already relevant
+                        score += 10
+                    if score >= 5:  # Only boost if we have a strong match (title or exact keyword)
+                        score += 20
 
             # General overlap
             content_words = set(re.findall(r'\w+', section_text.lower()))
@@ -613,7 +650,7 @@ class BuddAI:
         
         # Dynamic Threshold: Only keep sections that are relevant compared to the top match
         top_score = scored_sections[0][0]
-        filtered_sections = [s for s in scored_sections if s[0] >= top_score * 0.3 or s[0] > 30]
+        filtered_sections = [s for s in scored_sections if s[0] >= top_score * 0.4 or s[0] > 30]
         
         # Refine content: If a section is large, try to extract only relevant lines
         final_sections = []
@@ -668,6 +705,68 @@ class BuddAI:
             
         return "\n\n".join(final_sections)
 
+    def should_override_personality(self, query: str) -> Dict[str, Any]:
+        """
+        Detect when personality rules should be relaxed
+        Detect when personality rules should be relaxed using profiles
+        """
+        query_lower = query.lower()
+        
+        # 1. Check Workflow Detector (Priority)
+        try:
+            detection = self.workflow_detector.detect_intent(query)
+            intent = detection.get('intent')
+            confidence = detection.get('confidence', 0.0)
+            
+            if confidence > 0.6:
+                if intent in ['get_metric', 'system_query']:
+                    profile = PERSONALITY_PROFILES['factual']
+                    return {
+                        'override': True,
+                        'mode': 'concise_factual',
+                        'personality_rules': profile['rules'],
+                        'disable_rules': profile['disable']
+                    }
+        except Exception:
+            pass
+        
+        # 2. Factual / Metric Queries (Regex Fallback)
+        factual_patterns = [
+            r"how many",
+            r"what is the (number|count|total)",
+            r"how much",
+            r"what's my (job|company|product|accuracy)",
+        ]
+        
+        if any(re.search(p, query_lower) for p in factual_patterns):
+            profile = PERSONALITY_PROFILES['factual']
+            return {
+                'override': True,
+                'mode': 'concise_factual',
+                'personality_rules': profile['rules'],
+                'disable_rules': profile['disable']
+            }
+        
+        # 3. Engineering / Build Tasks
+        if any(word in query_lower for word in ['build', 'design', 'implement', 'code', 'generate']):
+            profile = PERSONALITY_PROFILES['engineering']
+            return {
+                'override': False,
+                'mode': 'full_personality',
+                'personality_rules': profile['rules'],
+                'disable_rules': profile['disable']
+            }
+        
+        return {'override': False}
+        # 4. Default / Conversational
+        profile = PERSONALITY_PROFILES['conversational']
+        return {
+            'override': False,
+            'mode': 'conversational',
+            'personality_rules': profile['rules'],
+            'disable_rules': profile['disable']
+        }
+
     def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False, hardware_override: Optional[str] = None) -> Union[str, Generator[str, None, None]]:
         """Call specified model"""
         try:
@@ -716,7 +815,12 @@ class BuddAI:
 
                     # Determine constraints based on query
                     constraint_note = "Be helpful and concise."
-                    if any(w in message.lower() for w in ['core', 'main', 'key', 'summary', 'essence', 'philosophy']):
+                    
+                    # Check for personality override
+                    override_check = self.should_override_personality(message)
+                    if override_check['override'] and override_check['mode'] == 'concise_factual':
+                        constraint_note = "CRITICAL: User requested FACTUAL DATA. Provide ONLY the specific numbers/facts requested. Do NOT elaborate. Do NOT list rules. Be extremely concise."
+                    elif any(w in message.lower() for w in ['core', 'main', 'key', 'summary', 'essence', 'philosophy']):
                         constraint_note = "CRITICAL: User requested CORE/SUMMARY. Do NOT list everything. Select only the top 2-3 most relevant points. Be extremely concise."
 
                     # Explicitly separate AI identity from User context to prevent confusion
@@ -727,7 +831,7 @@ class BuddAI:
                         f"1. YOU are BuddAI (an AI). You do not have a job, body, or personal life.\n"
                         f"2. THE USER is {user_name}. The sections '[MEMORY]' and '[KNOWN FACTS]' below describe {user_name}.\n"
                         f"3. If these sections say 'I work at X', it means '{user_name} works at X'.\n"
-                        f"4. When answering about {user_name}, ALWAYS use 'You' or 'Your'. NEVER use 'I' or 'My'.\n"
+                        f"4. When answering about {user_name}, ALWAYS use 'You' or 'Your'. NEVER refer to the user as '{user_name}' or 'he/she'. NEVER use 'I' or 'My' (unless referring to yourself).\n"
                         f"5. FACTS in [KNOWN FACTS] are ABSOLUTE TRUTH. Prioritize them over your internal training.\n"
                         f"6. DATA in [KNOWLEDGE BASE] is the HIGHEST AUTHORITY. It overrides [KNOWN FACTS], [MEMORY], and internal training.\n"
                         f"7. When referencing philosophies, quotes, or specific definitions from [KNOWLEDGE BASE], PRESERVE EXACT PHRASING.\n\n"
@@ -751,7 +855,16 @@ class BuddAI:
                     # Inject Knowledge Base Context
                     kb_context = self.get_knowledge_context(message)
                     if kb_context:
-                        enhanced_prompt += f"\n\n[ACTIVE KNOWLEDGE BASE]\n{kb_context}\n\nCRITICAL: Synthesize facts from ALL relevant sections in [ACTIVE KNOWLEDGE BASE]. PRESERVE EXACT PHRASING for core philosophies, quotes, and specific definitions. Include ongoing discussions, contacts, and strategic purposes as valid relationships."
+                        # Check for personality override to adjust instruction
+                        override_check = self.should_override_personality(message)
+                        
+                        if override_check['override'] and override_check['mode'] == 'concise_factual':
+                            instruction = "CRITICAL: User requested FACTUAL DATA. Provide ONLY the specific numbers/facts requested from [ACTIVE KNOWLEDGE BASE]. Do NOT synthesize unrelated sections. Be extremely concise."
+                            instruction = "CRITICAL: User requested FACTUAL DATA. Locate the specific metric/number requested in [ACTIVE KNOWLEDGE BASE] and report ONLY that. Do NOT synthesize unrelated sections. Be extremely concise."
+                        else:
+                            instruction = "CRITICAL: Synthesize facts from ALL relevant sections in [ACTIVE KNOWLEDGE BASE]. PRESERVE EXACT PHRASING for core philosophies, quotes, and specific definitions. Include ongoing discussions, contacts, and strategic purposes as valid relationships."
+
+                        enhanced_prompt += f"\n\n[ACTIVE KNOWLEDGE BASE]\n{kb_context}\n\n{instruction}"
                         print(f"📚 Knowledge Base Active: {len(kb_context)} chars loaded")
 
                 # Inject mode-specific note if available
@@ -931,7 +1044,8 @@ class BuddAI:
         """Retrieve relevant Q&A pairs from memory"""
         try:
             # Simple keyword matching for now
-            keywords = [w for w in query.lower().split() if len(w) > 3]
+            stop_words = {'buddai', 'james', 'does', 'have', 'what', 'when', 'where', 'which', 'this', 'that', 'with', 'from', 'about', 'how', 'many', 'currently'}
+            keywords = [w for w in query.lower().split() if len(w) > 3 and w not in stop_words]
             if not keywords:
                 return ""
                 
@@ -1083,9 +1197,32 @@ class BuddAI:
         if any(w in text_lower for w in ["code", "script", "program", "compile", "function", "loop()", "setup()"]):
             return False
         return any(k in text_lower for k in keywords)
+        
+    def get_system_stats_context(self) -> str:
+        """Generate system introspection data"""
+        return (
+            f"[SYSTEM ARCHITECTURE]\n"
+            f"- Smart Skills: {len(self.skills_registry)}\n"
+            f"- Validators: {len(self.validator.validators)}\n"
+            f"- Languages: {len(self.language_registry.get_supported_languages())}\n"
+            f"- Modes: FAST (Conversational), BALANCED (Engineering)\n"
+            f"- Personas: 4 levels\n"
+        )
 
     def _route_request(self, user_message: str, force_model: Optional[str], forge_mode: str) -> str:
         """Route the request to the appropriate model or handler."""
+        
+        # 1. Check Workflow Detector for System Queries (High Priority)
+        try:
+            detection = self.workflow_detector.detect_intent(user_message)
+            if detection.get('confidence', 0.0) > 0.6 and detection.get('intent') == 'system_query':
+                print("\n⚖️  Using BALANCED model (System Query)...")
+                stats = self.get_system_stats_context()
+                enhanced_message = f"{user_message}\n\n{stats}\n\nAnswer based on the system architecture above. Be concise."
+                return self.call_model("balanced", enhanced_message, system_task=True)
+        except Exception:
+            pass
+            
         # Determine model based on complexity
         if force_model:
             model = force_model

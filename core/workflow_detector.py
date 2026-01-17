@@ -132,6 +132,39 @@ class WorkflowDetector:
                     'what\'s wrong with this?'
                 ]
             },
+            'get_metric': {
+                'keywords': ['how many', 'count', 'number', 'total', 'stats', 'metrics', 'accuracy', 'pass rate'],
+                'objects': ['tests', 'rules', 'projects', 'files', 'lines', 'coverage'],
+                'patterns': [
+                    r'how\s+many',
+                    r'what\s+is\s+the\s+(?:count|number|total)',
+                    r'show\s+(?:me\s+)?(?:the\s+)?(?:stats|metrics)',
+                    r'what\'s\s+my\s+(?:job|company|product|accuracy)'
+                ],
+                'examples': [
+                    'how many tests do we have',
+                    'what is the total line count',
+                    'show me the stats'
+                ]
+            },
+            'system_query': {
+                'keywords': ['what', 'who', 'where', 'when', 'why', 'status', 'info', 'about', 'version', 'components', 'architecture', 'structure'],
+                'objects': ['system', 'buddai', 'version', 'model', 'capabilities', 'you', 'yourself', 'components', 'architecture', 'skills', 'validators', 'languages'],
+                'patterns': [
+                    r'who\s+are\s+you',
+                    r'what\s+is\s+this',
+                    r'system\s+status',
+                    r'tell\s+me\s+about',
+                    r'what\s+can\s+you\s+do',
+                    r'what\s+are\s+(?:your|buddai\'?s?)\s+(?:main\s+)?components',
+                    r'describe\s+(?:your|buddai\'?s?)\s+architecture'
+                ],
+                'examples': [
+                    'who are you',
+                    'system status',
+                    'tell me about yourself'
+                ]
+            },
             'explain_code': {
                 'keywords': ['explain', 'what', 'how', 'why', 'understand'],
                 'objects': ['does', 'work', 'mean', 'is'],
